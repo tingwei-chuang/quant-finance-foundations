@@ -10,9 +10,8 @@ help:  ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 		| awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
 
-install:  ## Create the venv and install the package with dev extras.
-	uv venv --python 3.12
-	uv pip install -e ".[dev]"
+install:  ## Create the venv (from uv.lock) and install dev dependencies.
+	uv sync --extra dev
 
 data:  ## Generate the synthetic sample dataset.
 	uv run python scripts/generate_synthetic_dataset.py

@@ -68,8 +68,8 @@ backtesting…）予以保留。國際讀者請見 [`README_en.md`](README_en.md
 #    https://docs.astral.sh/uv/getting-started/installation/
 
 # 2. 建立並同步環境（含開發相依套件）
-uv venv --python 3.12
-uv pip install -e ".[dev]"
+#    uv sync 會依 uv.lock 自動建立 .venv，無需另外執行 uv venv
+uv sync --extra dev
 
 # 3. 產生合成範例資料集
 uv run python scripts/generate_synthetic_dataset.py

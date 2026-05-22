@@ -13,8 +13,7 @@
 本專案使用 [uv](https://docs.astral.sh/uv/)。
 
 ```bash
-uv venv --python 3.12
-uv pip install -e ".[dev]"
+uv sync --extra dev            # 依 uv.lock 建立 .venv 並安裝開發相依套件
 uv run pre-commit install      # 安裝 git pre-commit hooks
 ```
 

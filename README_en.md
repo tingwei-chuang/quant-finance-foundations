@@ -56,8 +56,7 @@ portfolio, time-series and backtesting foundations.
 
 ```bash
 # Install uv: https://docs.astral.sh/uv/getting-started/installation/
-uv venv --python 3.12
-uv pip install -e ".[dev]"
+uv sync --extra dev                                    # create .venv from uv.lock
 uv run python scripts/generate_synthetic_dataset.py   # build sample data
 uv run pytest                                          # run tests
 uv run python scripts/run_all_notebooks.py             # validate notebooks

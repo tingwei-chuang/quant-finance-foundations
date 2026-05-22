@@ -21,21 +21,26 @@ jobs:
           python-version: "3.12"
 
       - name: Install the project (with dev extras)
-        run: uv pip install --system -e ".[dev]"
+        # `uv sync` creates a managed .venv from uv.lock; it does not touch the
+        # externally-managed system Python.
+        run: uv sync --extra dev
+
+      - name: Register the Jupyter kernel for notebook validation
+        run: uv run python -m ipykernel install --user --name python3
 
       - name: Lint with ruff
         run: |
-          ruff check .
-          ruff format --check .
+          uv run ruff check .
+          uv run ruff format --check .
 
       - name: Type-check with mypy
-        run: mypy
+        run: uv run mypy
 
       - name: Generate synthetic sample data
-        run: python scripts/generate_synthetic_dataset.py
+        run: uv run python scripts/generate_synthetic_dataset.py
 
       - name: Run tests
-        run: pytest --cov
+        run: uv run pytest --cov
 
       - name: Validate notebooks (offline, no network)
-        run: pytest --nbmake notebooks/ notebooks/solutions/ --nbmake-timeout=600
+        run: uv run pytest --nbmake notebooks/ notebooks/solutions/ --nbmake-timeout=600
