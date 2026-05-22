@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite it as below."
+title: "quant-math-roadmap: An 8-Week Quant Finance Math Roadmap"
+abstract: >-
+  A self-study, reproducible, and rigorous 8-week roadmap that builds the
+  mathematical and methodological foundations for quantitative finance and
+  systematic research. It covers returns and risk, linear algebra,
+  multivariable calculus and portfolio optimisation, probability, statistical
+  inference, regression, financial mathematics, time-series analysis, and
+  leakage-controlled backtesting. The project is for education and research
+  methodology only; it is not investment advice and makes no claim of trading
+  profitability.
+type: software
+authors:
+  - name: "Quant Math Roadmap Contributors"
+license: MIT
+version: "0.1.0"
+date-released: "2026-01-01"
+keywords:
+  - quantitative-finance
+  - education
+  - backtesting
+  - time-series
+  - statistics
+  - regression
+  - reproducible-research
+repository-code: "https://github.com/quant-math-roadmap/quant-math-roadmap"

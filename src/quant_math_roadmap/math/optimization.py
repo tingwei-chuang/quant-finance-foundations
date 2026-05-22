@@ -13,9 +13,7 @@ import numpy.typing as npt
 FloatArray = npt.NDArray[np.float64]
 
 
-def quadratic_gradient(
-    matrix: npt.ArrayLike, weights: npt.ArrayLike
-) -> FloatArray:
+def quadratic_gradient(matrix: npt.ArrayLike, weights: npt.ArrayLike) -> FloatArray:
     """Return the gradient of ``f(w) = w^T M w`` with respect to ``w``.
 
     For a symmetric ``M`` the gradient is ``2 M w``. This is the workhorse
@@ -57,9 +55,7 @@ def quadratic_hessian(matrix: npt.ArrayLike) -> FloatArray:
     return 2.0 * (0.5 * (M + M.T))
 
 
-def min_variance_weights(
-    covariance: npt.ArrayLike, *, ridge: float = 0.0
-) -> FloatArray:
+def min_variance_weights(covariance: npt.ArrayLike, *, ridge: float = 0.0) -> FloatArray:
     """Solve the global minimum-variance portfolio in closed form.
 
     The problem is::
@@ -97,9 +93,7 @@ def min_variance_weights(
     try:
         inv_dot_ones = np.linalg.solve(Sigma, ones)
     except np.linalg.LinAlgError as exc:
-        raise ValueError(
-            "covariance matrix is singular; try a positive `ridge` term"
-        ) from exc
+        raise ValueError("covariance matrix is singular; try a positive `ridge` term") from exc
     denominator = float(ones @ inv_dot_ones)
     if abs(denominator) < 1e-15:
         raise ValueError("degenerate covariance: 1^T Sigma^-1 1 is ~0")

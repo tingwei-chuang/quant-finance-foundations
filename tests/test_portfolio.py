@@ -88,9 +88,7 @@ def test_min_variance_singular_covariance_with_ridge_succeeds() -> None:
 
 def test_portfolio_variance_matches_quadratic_form(covariance: np.ndarray) -> None:
     w = equal_weights(covariance.shape[0])
-    assert portfolio_variance(w, covariance) == pytest.approx(
-        quadratic_form(w, covariance)
-    )
+    assert portfolio_variance(w, covariance) == pytest.approx(quadratic_form(w, covariance))
 
 
 def test_minimum_variance_portfolio_wrapper(covariance: np.ndarray) -> None:
@@ -114,9 +112,7 @@ def test_shrinkage_covariance_is_psd_and_blends() -> None:
 def test_buy_and_hold_weights_drift_without_rebalancing() -> None:
     idx = pd.bdate_range("2021-01-01", periods=3)
     # Asset A always rises, asset B always falls.
-    returns = pd.DataFrame(
-        {"A": [0.10, 0.10, 0.10], "B": [-0.10, -0.10, -0.10]}, index=idx
-    )
+    returns = pd.DataFrame({"A": [0.10, 0.10, 0.10], "B": [-0.10, -0.10, -0.10]}, index=idx)
     weights = buy_and_hold_weights(np.array([0.5, 0.5]), returns)
     # Winner's weight should strictly increase, loser's should decrease.
     assert weights["A"].is_monotonic_increasing

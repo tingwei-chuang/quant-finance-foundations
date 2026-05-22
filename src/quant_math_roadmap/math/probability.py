@@ -70,9 +70,7 @@ def sampling_distribution_of_mean(
     elif population_sampler == "bernoulli":
         draws = rng.binomial(n=1, p=0.3, size=shape).astype(float)
     else:
-        raise ValueError(
-            "population_sampler must be 'uniform', 'exponential' or 'bernoulli'"
-        )
+        raise ValueError("population_sampler must be 'uniform', 'exponential' or 'bernoulli'")
     return draws.mean(axis=1)
 
 
@@ -90,9 +88,7 @@ def simulate_bernoulli(p: float, size: int, *, seed: int = 0) -> FloatArray:
     return rng.binomial(n=1, p=p, size=size).astype(float)
 
 
-def simulate_normal(
-    mean: float, std: float, size: int, *, seed: int = 0
-) -> FloatArray:
+def simulate_normal(mean: float, std: float, size: int, *, seed: int = 0) -> FloatArray:
     """Simulate Normal(``mean``, ``std``²) draws.
 
     Args:

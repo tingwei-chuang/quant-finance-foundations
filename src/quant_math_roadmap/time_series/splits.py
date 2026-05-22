@@ -34,14 +34,11 @@ class Split:
             raise ValueError("both train and test index must be non-empty")
         if self.train_index.max() >= self.test_index.min():
             raise ValueError(
-                "look-ahead detected: every training index must precede every "
-                "test index"
+                "look-ahead detected: every training index must precede every test index"
             )
 
 
-def train_test_split_time(
-    n_samples: int, *, test_size: float = 0.3
-) -> Split:
+def train_test_split_time(n_samples: int, *, test_size: float = 0.3) -> Split:
     """Split a series into one earlier train block and one later test block.
 
     Args:
@@ -139,8 +136,6 @@ def rolling_window_splits(
     train_start = 0
     while train_start + train_size + test_size <= n_samples:
         train_index = np.arange(train_start, train_start + train_size)
-        test_index = np.arange(
-            train_start + train_size, train_start + train_size + test_size
-        )
+        test_index = np.arange(train_start + train_size, train_start + train_size + test_size)
         yield Split(train_index=train_index, test_index=test_index)
         train_start += advance

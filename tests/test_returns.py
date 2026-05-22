@@ -57,9 +57,9 @@ def test_simple_log_round_trip(prices: pd.Series) -> None:
 
 def test_returns_drop_leading_nan(prices: pd.Series) -> None:
     assert len(simple_returns(prices)) == len(prices) - 1
-    assert simple_returns(prices, dropna=False).iloc[0] != simple_returns(
-        prices, dropna=False
-    ).iloc[0]  # leading value is NaN
+    assert (
+        simple_returns(prices, dropna=False).iloc[0] != simple_returns(prices, dropna=False).iloc[0]
+    )  # leading value is NaN
 
 
 def test_returns_reject_non_positive_prices() -> None:

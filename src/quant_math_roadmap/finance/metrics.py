@@ -43,9 +43,7 @@ def periods_per_year(frequency: str) -> int:
     """
     key = frequency.lower()
     if key not in PERIODS_PER_YEAR:
-        raise ValueError(
-            f"unknown frequency {frequency!r}; choose from {sorted(PERIODS_PER_YEAR)}"
-        )
+        raise ValueError(f"unknown frequency {frequency!r}; choose from {sorted(PERIODS_PER_YEAR)}")
     return PERIODS_PER_YEAR[key]
 
 
@@ -67,9 +65,7 @@ def annualized_mean(returns: PandasData, *, frequency: str = "daily") -> float |
     return returns.mean() * scale
 
 
-def annualized_volatility(
-    returns: PandasData, *, frequency: str = "daily"
-) -> float | pd.Series:
+def annualized_volatility(returns: PandasData, *, frequency: str = "daily") -> float | pd.Series:
     """Annualise return volatility using the square-root-of-time rule.
 
     Volatility scales with ``sqrt(periods)`` under the (idealised) assumption
@@ -135,8 +131,9 @@ def max_drawdown(equity_curve: pd.Series) -> float:
     return float(drawdown.min())
 
 
-def covariance_matrix(returns: pd.DataFrame, *, annualize: bool = False,
-                      frequency: str = "daily") -> pd.DataFrame:
+def covariance_matrix(
+    returns: pd.DataFrame, *, annualize: bool = False, frequency: str = "daily"
+) -> pd.DataFrame:
     """Compute the sample covariance matrix of asset returns.
 
     Args:

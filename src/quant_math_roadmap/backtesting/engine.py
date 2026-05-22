@@ -94,9 +94,7 @@ def run_backtest(
 
     positions = signal_to_positions(signal, lag=signal_lag)
     gross = strategy_returns(positions, asset_returns)
-    net = apply_transaction_costs(
-        gross, positions, cost_per_unit_turnover=cost_per_unit_turnover
-    )
+    net = apply_transaction_costs(gross, positions, cost_per_unit_turnover=cost_per_unit_turnover)
 
     gross_equity = initial_capital * (1.0 + gross).cumprod()
     net_equity = initial_capital * (1.0 + net).cumprod()
@@ -110,9 +108,7 @@ def run_backtest(
     )
 
 
-def buy_and_hold_benchmark(
-    asset_returns: pd.Series, *, initial_capital: float = 1.0
-) -> pd.Series:
+def buy_and_hold_benchmark(asset_returns: pd.Series, *, initial_capital: float = 1.0) -> pd.Series:
     """Return the single-asset buy-and-hold equity curve.
 
     For one asset, buy-and-hold simply means staying fully invested: the equity

@@ -122,7 +122,5 @@ def test_false_discovery_demo_matches_expected_rate() -> None:
     result = false_discovery_demo(n_strategies=500, n_periods=252, alpha=0.05, seed=0)
     # All strategies are pure noise, so every rejection is a false positive.
     # The count should sit near the theoretical expectation alpha * n.
-    assert result["n_false_positives"] == pytest.approx(
-        result["expected_false_positives"], abs=20
-    )
+    assert result["n_false_positives"] == pytest.approx(result["expected_false_positives"], abs=20)
     assert result["n_false_positives"] > 0

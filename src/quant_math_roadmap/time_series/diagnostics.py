@@ -79,9 +79,7 @@ def rolling_mean(series: pd.Series, window: int) -> pd.Series:
     return series.rolling(window=window).mean()
 
 
-def rolling_volatility(
-    returns: pd.Series, window: int, *, ddof: int = 1
-) -> pd.Series:
+def rolling_volatility(returns: pd.Series, window: int, *, ddof: int = 1) -> pd.Series:
     """Return the trailing rolling standard deviation of returns.
 
     Rising rolling volatility is the visual signature of *volatility

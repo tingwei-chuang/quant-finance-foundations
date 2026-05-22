@@ -41,9 +41,7 @@ def test_split_dataclass_rejects_lookahead() -> None:
 
 
 def test_expanding_window_splits_grow_and_stay_ordered() -> None:
-    splits = list(
-        expanding_window_splits(100, initial_train_size=40, test_size=10)
-    )
+    splits = list(expanding_window_splits(100, initial_train_size=40, test_size=10))
     assert len(splits) == 6
     prev_train_size = 0
     for s in splits:

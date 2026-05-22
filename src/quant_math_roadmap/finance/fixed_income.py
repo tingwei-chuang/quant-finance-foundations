@@ -56,9 +56,7 @@ def present_value(
     ts = np.asarray(times, dtype=float)
     if cf.shape != ts.shape:
         raise ValueError("cash_flows and times must have the same length")
-    factors = np.array(
-        [discount_factor(rate, t, periods_per_year=periods_per_year) for t in ts]
-    )
+    factors = np.array([discount_factor(rate, t, periods_per_year=periods_per_year) for t in ts])
     return float(np.sum(cf * factors))
 
 
@@ -103,9 +101,7 @@ def bond_price(
     cash_flows = [coupon] * n_periods
     cash_flows[-1] += face_value
     times = [(i + 1) / coupons_per_year for i in range(n_periods)]
-    return present_value(
-        cash_flows, times, yield_to_maturity, periods_per_year=coupons_per_year
-    )
+    return present_value(cash_flows, times, yield_to_maturity, periods_per_year=coupons_per_year)
 
 
 def zero_coupon_bond_price(
@@ -165,7 +161,10 @@ def yield_to_maturity(
 
     def price_at(y: float) -> float:
         return bond_price(
-            face_value, coupon_rate, years_to_maturity, y,
+            face_value,
+            coupon_rate,
+            years_to_maturity,
+            y,
             coupons_per_year=coupons_per_year,
         )
 
@@ -185,8 +184,9 @@ def yield_to_maturity(
     return 0.5 * (low + high)
 
 
-def discount_curve(rate: float, times: Sequence[float],
-                   *, periods_per_year: int = 1) -> npt.NDArray[np.float64]:
+def discount_curve(
+    rate: float, times: Sequence[float], *, periods_per_year: int = 1
+) -> npt.NDArray[np.float64]:
     """Return discount factors for a sequence of maturities at a flat rate.
 
     Args:
@@ -197,6 +197,4 @@ def discount_curve(rate: float, times: Sequence[float],
     Returns:
         An array of discount factors aligned with ``times``.
     """
-    return np.array(
-        [discount_factor(rate, t, periods_per_year=periods_per_year) for t in times]
-    )
+    return np.array([discount_factor(rate, t, periods_per_year=periods_per_year) for t in times])

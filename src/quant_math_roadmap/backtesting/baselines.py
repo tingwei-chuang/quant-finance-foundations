@@ -45,8 +45,10 @@ def buy_and_hold_equity(
         The portfolio equity curve, starting at ``initial_capital``.
     """
     n_assets = asset_returns.shape[1]
-    weights = equal_weights(n_assets) if initial_weights is None else np.asarray(
-        initial_weights, dtype=float
+    weights = (
+        equal_weights(n_assets)
+        if initial_weights is None
+        else np.asarray(initial_weights, dtype=float)
     )
     if not np.isclose(weights.sum(), 1.0):
         raise ValueError("initial_weights must sum to one")

@@ -55,8 +55,10 @@ def test_position_never_uses_contemporaneous_signal() -> None:
     same_day = aligned.iloc[:, 0].corr(aligned.iloc[:, 1])
     assert abs(same_day) < 0.2
     # ...while position vs lagged signal is perfect.
-    assert positions.iloc[1:].reset_index(drop=True).equals(
-        signal.shift(1).iloc[1:].reset_index(drop=True)
+    assert (
+        positions.iloc[1:]
+        .reset_index(drop=True)
+        .equals(signal.shift(1).iloc[1:].reset_index(drop=True))
     )
 
 
@@ -77,9 +79,7 @@ def test_assert_no_lookahead_catches_leaked_feature(returns: pd.Series) -> None:
 def test_leaked_strategy_is_unrealistically_profitable(returns: pd.Series) -> None:
     """The intentionally invalid leaked example must be obviously impossible."""
     leaked = leaked_strategy_returns(returns)
-    honest = strategy_returns(
-        signal_to_positions(np.sign(returns), lag=1), returns
-    )
+    honest = strategy_returns(signal_to_positions(np.sign(returns), lag=1), returns)
     leaked_total = (1.0 + leaked).prod() - 1.0
     honest_total = (1.0 + honest).prod() - 1.0
     # The leaked strategy "wins" every single period by construction.
@@ -114,9 +114,7 @@ def test_run_backtest_positions_are_lagged(returns: pd.Series) -> None:
     # The first position is flat: no signal was available before the start.
     assert result.positions.iloc[0] == 0.0
     # Positions equal the once-lagged signal.
-    pd.testing.assert_series_equal(
-        result.positions, signal.shift(1).fillna(0.0), check_names=False
-    )
+    pd.testing.assert_series_equal(result.positions, signal.shift(1).fillna(0.0), check_names=False)
 
 
 def test_early_rolling_features_do_not_create_positions() -> None:

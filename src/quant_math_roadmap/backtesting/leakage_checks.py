@@ -76,9 +76,7 @@ def assert_no_lookahead(
         )
 
 
-def strategy_returns(
-    positions: pd.Series, asset_returns: pd.Series
-) -> pd.Series:
+def strategy_returns(positions: pd.Series, asset_returns: pd.Series) -> pd.Series:
     """Combine positions with realised returns into strategy returns.
 
     The caller is responsible for having already lagged the positions (see

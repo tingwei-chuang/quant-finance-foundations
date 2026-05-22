@@ -19,9 +19,7 @@ import pandas as pd
 from ..math.linear_algebra import add_intercept, ols_beta
 
 
-def make_lag_features(
-    series: pd.Series, n_lags: int, *, dropna: bool = True
-) -> pd.DataFrame:
+def make_lag_features(series: pd.Series, n_lags: int, *, dropna: bool = True) -> pd.DataFrame:
     """Build a lagged-feature matrix for autoregressive modelling.
 
     Column ``lag_k`` holds ``series`` shifted forward by ``k`` periods, so the
@@ -150,9 +148,7 @@ def fit_linear_lag_model(series: pd.Series, n_lags: int) -> LinearLagModel:
     return LinearLagModel(coefficients=beta, n_lags=n_lags)
 
 
-def forecast_error_metrics(
-    actual: pd.Series, predicted: pd.Series
-) -> dict[str, float]:
+def forecast_error_metrics(actual: pd.Series, predicted: pd.Series) -> dict[str, float]:
     """Return basic point-forecast error metrics.
 
     Args:

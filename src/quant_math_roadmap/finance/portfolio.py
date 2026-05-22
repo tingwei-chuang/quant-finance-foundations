@@ -82,9 +82,7 @@ def minimum_variance_portfolio(
     return min_variance_weights(cov, ridge=ridge)
 
 
-def shrinkage_covariance(
-    returns: pd.DataFrame, *, shrinkage: float = 0.2
-) -> pd.DataFrame:
+def shrinkage_covariance(returns: pd.DataFrame, *, shrinkage: float = 0.2) -> pd.DataFrame:
     """Shrink a sample covariance matrix towards a scaled-identity target.
 
     The estimator is ``(1 - delta) * S + delta * F`` where ``S`` is the sample
@@ -112,9 +110,7 @@ def shrinkage_covariance(
     return (1.0 - shrinkage) * sample + shrinkage * target
 
 
-def buy_and_hold_weights(
-    initial_weights: np.ndarray, asset_returns: pd.DataFrame
-) -> pd.DataFrame:
+def buy_and_hold_weights(initial_weights: np.ndarray, asset_returns: pd.DataFrame) -> pd.DataFrame:
     """Track how a one-time allocation's weights *drift* with asset returns.
 
     This is the heart of a correct buy-and-hold baseline: you allocate once and

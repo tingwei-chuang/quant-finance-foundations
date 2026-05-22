@@ -120,9 +120,7 @@ class TTestResult:
     mean: float
 
 
-def one_sample_ttest(
-    samples: npt.ArrayLike, *, popmean: float = 0.0
-) -> TTestResult:
+def one_sample_ttest(samples: npt.ArrayLike, *, popmean: float = 0.0) -> TTestResult:
     """Test whether the population mean differs from ``popmean``.
 
     Typical use: test whether a strategy's mean return is different from zero.
@@ -179,7 +177,10 @@ class OLSResult:
         header = f"  {'name':<14}{'coef':>12}{'std err':>12}{'t':>10}"
         lines.append(header)
         for name, c, se, t in zip(
-            self.param_names, self.params, self.std_errors, self.t_values,
+            self.param_names,
+            self.params,
+            self.std_errors,
+            self.t_values,
             strict=True,
         ):
             lines.append(f"  {name:<14}{c:>12.6f}{se:>12.6f}{t:>10.3f}")
@@ -228,9 +229,7 @@ def ols_fit(
     ss_res = float(residuals @ residuals)
     ss_tot = float(((y_vec - y_vec.mean()) ** 2).sum())
     r_squared = 1.0 - ss_res / ss_tot if ss_tot > 0 else 0.0
-    adj_r_squared = (
-        1.0 - (1.0 - r_squared) * (n - 1) / (n - k) if n > k else float("nan")
-    )
+    adj_r_squared = 1.0 - (1.0 - r_squared) * (n - 1) / (n - k) if n > k else float("nan")
 
     sigma2 = ss_res / (n - k)
     cov_beta = sigma2 * np.linalg.inv(design.T @ design)
@@ -239,7 +238,7 @@ def ols_fit(
         t_values = np.where(std_errors > 0, beta / std_errors, 0.0)
 
     base_names = feature_names or [f"x{i + 1}" for i in range(X_raw.shape[1])]
-    names = (["const", *base_names] if add_const else list(base_names))
+    names = ["const", *base_names] if add_const else list(base_names)
 
     return OLSResult(
         params=beta,

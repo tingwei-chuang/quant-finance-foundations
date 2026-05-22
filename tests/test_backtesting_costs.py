@@ -95,14 +95,9 @@ def test_buy_and_hold_does_not_rebalance() -> None:
 def test_buy_and_hold_turns_over_far_less_than_rebalancing() -> None:
     idx = pd.bdate_range("2021-01-01", periods=120)
     rng = np.random.default_rng(2)
-    returns = pd.DataFrame(
-        rng.normal(0.0, 0.015, (120, 4)), index=idx, columns=list("ABCD")
-    )
+    returns = pd.DataFrame(rng.normal(0.0, 0.015, (120, 4)), index=idx, columns=list("ABCD"))
     comparison = baseline_turnover_comparison(returns)
-    assert (
-        comparison["buy_and_hold_turnover"]
-        < comparison["equal_weight_rebalanced_turnover"]
-    )
+    assert comparison["buy_and_hold_turnover"] < comparison["equal_weight_rebalanced_turnover"]
 
 
 def test_rebalanced_baseline_runs(asset_returns: pd.Series) -> None:
