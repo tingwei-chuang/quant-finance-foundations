@@ -16,7 +16,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-type PandasData = pd.Series | pd.DataFrame
+from .._typing import PandasData
 
 PERIODS_PER_YEAR: dict[str, int] = {
     "daily": 252,

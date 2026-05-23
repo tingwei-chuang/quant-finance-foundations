@@ -7,6 +7,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
 
+> **新手請從這裡開始**：在瀏覽器打開 [`index.html`](index.html)（雙擊本機檔案即可，
+> 不需網路、不需後端），即可看到整合的課程介紹、快速開始指令、八週路線圖、
+> 互動式學習排程規劃，以及可儲存在瀏覽器的個人進度追蹤。
+
 ---
 
 ## 1. 專案目的

@@ -11,7 +11,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-type PandasData = pd.Series | pd.DataFrame
+from .._typing import PandasData
 
 
 def simple_returns(prices: PandasData, *, dropna: bool = True) -> PandasData:

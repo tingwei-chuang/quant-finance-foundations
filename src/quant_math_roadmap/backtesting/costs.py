@@ -8,7 +8,6 @@ gross-vs-net gap impossible to ignore.
 
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
 
 
@@ -100,10 +99,3 @@ def annualized_turnover(positions: pd.Series, *, periods_per_year: int = 252) ->
     if periods_per_year < 1:
         raise ValueError("periods_per_year must be >= 1")
     return float(position_turnover(positions).mean() * periods_per_year)
-
-
-def _ensure_series(values: pd.Series | np.ndarray, index: pd.Index) -> pd.Series:
-    """Coerce an array-like to a ``Series`` on the given index (internal helper)."""
-    if isinstance(values, pd.Series):
-        return values
-    return pd.Series(np.asarray(values, dtype=float), index=index)
