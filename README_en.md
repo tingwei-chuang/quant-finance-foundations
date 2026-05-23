@@ -7,6 +7,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
 
+> **New here?** Open [`index.html`](index.html) in any browser (no server, no
+> network) for an integrated landing page: project intro, quick-start commands,
+> the 8-week roadmap, an interactive schedule planner, and a progress tracker
+> stored in your browser.
+
 > The primary teaching language of this repository is **Traditional Chinese**.
 > This page is a concise English summary for international visitors; see
 > [`README.md`](README.md) for the full guide.
