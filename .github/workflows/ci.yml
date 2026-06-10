@@ -50,11 +50,37 @@ jobs:
       - name: Type-check with mypy
         run: uv run mypy
 
-      - name: Generate synthetic sample data
-        run: uv run python scripts/generate_synthetic_dataset.py
+      - name: Verify the committed sample dataset is reproducible
+        run: uv run python scripts/generate_synthetic_dataset.py --verify
 
       - name: Run tests (with coverage gate)
-        run: uv run pytest --cov
+        run: uv run pytest --cov --cov-report=xml --cov-report=term
+
+      - name: Add coverage to the job summary
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        run: |
+          uv run python - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import xml.etree.ElementTree as ET
+          rate = float(ET.parse("coverage.xml").getroot().get("line-rate"))
+          print(f"### Coverage: {rate:.1%} (gate: 80%)")
+          EOF
+
+      - name: Upload coverage report artifact
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+      - name: Upload coverage to Codecov (best effort)
+        # Tokenless uploads work for public repos; failures must never block
+        # CI, so this step is advisory only.
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+        continue-on-error: true
+        uses: codecov/codecov-action@v4
+        with:
+          files: coverage.xml
+          fail_ci_if_error: false
 
   notebooks:
     # Notebook execution is heavier; one canonical Linux job is enough.
@@ -75,8 +101,24 @@ jobs:
       - name: Verify the notebook generator produces the committed notebooks
         run: uv run python scripts/build_notebooks.py --check
       - name: Validate notebooks (offline, no network)
-        # `notebooks/` recursion picks up solutions/ too, so we list it once.
+        # `notebooks/` recursion picks up solutions/ and en/ too.
         run: uv run pytest --nbmake notebooks/ --nbmake-timeout=600
+
+  links:
+    # Offline link check: verifies every relative link in the Markdown docs
+    # and the landing page resolves to a real file. Remote URLs are skipped
+    # in offline mode, so this job is fully deterministic.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check relative links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --offline --no-progress --root-dir ${{ github.workspace }}
+            README.md README_en.md CONTRIBUTING.md SECURITY.md
+            'docs/**/*.md' 'data/README.md' index.html
+          fail: true
 
   audit:
     runs-on: ubuntu-latest

@@ -15,9 +15,11 @@ from .costs import (
 )
 from .engine import (
     BacktestResult,
+    PortfolioBacktestResult,
     buy_and_hold_benchmark,
     information_coefficient,
     run_backtest,
+    run_portfolio_backtest,
 )
 from .leakage_checks import (
     assert_no_lookahead,
@@ -25,8 +27,16 @@ from .leakage_checks import (
     signal_to_positions,
     strategy_returns,
 )
+from .sweeps import (
+    lookback_parameter_sweep,
+    trailing_momentum_signal,
+)
 
 __all__ = [
+    "PortfolioBacktestResult",
+    "lookback_parameter_sweep",
+    "run_portfolio_backtest",
+    "trailing_momentum_signal",
     "BacktestResult",
     "annualized_turnover",
     "apply_transaction_costs",

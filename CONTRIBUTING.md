@@ -48,17 +48,22 @@ uv run python scripts/run_all_notebooks.py   # notebook 驗證
   軸標籤、必要時的圖例，以及一段說明用的 markdown。
 - 不要寫只描述「程式做什麼」的註解；只在「為什麼」不明顯時才加註解。
 
-## 4. 如何新增 notebook
+## 4. 如何新增或修改 notebook
 
-本專案的 notebook 由 `scripts/build_notebooks.py` 產生，以確保主 notebook 與
-解答 notebook 永遠同步。
+本專案的 notebook 由 `scripts/build_notebooks.py` 產生（內容在
+`scripts/_notebook_lib/`，一週一檔），以確保主 notebook、解答 notebook 與
+英文版（`notebooks/en/`）永遠同步。**請勿直接編輯 `.ipynb`**——CI 的
+`--check` 會偵測出與產生器不一致的 drift。
 
-1. 在 `scripts/build_notebooks.py` 新增一個 `weekN(solution)` 建構函式。
-2. 把它登記進 `NOTEBOOKS` 字典。
-3. 執行 `uv run python scripts/build_notebooks.py` 重新產生 notebook。
+1. 修改（或新增）`scripts/_notebook_lib/weekN.py` 的 `week(solution)` 建構函式；
+   新週次需同時提供 `weekN_en.py` 英文版，並登記進
+   `scripts/_notebook_lib/__init__.py` 的 `NOTEBOOKS` / `NOTEBOOKS_EN`。
+2. 執行 `uv run python scripts/build_notebooks.py`（可用 `--only NN` 只重建一週）。
+3. 用 `uv run python scripts/build_notebooks.py --check` 確認產生器與
+   committed `.ipynb` 一致。
 4. 每本 notebook 必須包含：標題與學習目標、預估時間、先備概念、外部資源連結、
-   繁體中文概念說明、LaTeX 數學式、可重現的程式碼、明確標示的練習
-   （基礎／應用／反思）、「常見錯誤」、「完成本週後…」檢查清單、參考與致謝。
+   概念說明、LaTeX 數學式、可重現的程式碼、明確標示的練習
+   （基礎／應用／反思）、小測驗、「常見錯誤」、「完成本週後…」檢查清單、參考與致謝。
 5. notebook 必須能**離線、由上到下**執行完畢，且預設使用合成資料。
 
 ## 5. 如何新增測試

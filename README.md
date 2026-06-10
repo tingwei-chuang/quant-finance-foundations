@@ -60,6 +60,10 @@ backtesting…）予以保留。國際讀者請見 [`README_en.md`](README_en.md
 | 7 | 時間序列診斷 | `07_time_series_diagnostics.ipynb` |
 | 8 | 走動式預測與回測完整性 | `08_walk_forward_forecasting_and_backtesting_integrity.ipynb` |
 
+每本 notebook 末尾附有**選擇題小測驗**（含自動對答案與解析），完整的
+**英文版 notebooks** 位於 [`notebooks/en/`](notebooks/en/)，方便國際學習者
+或想用英文術語複習的人。
+
 完整路線圖請見 [`docs/roadmap.md`](docs/roadmap.md)；每週詳細計畫請見
 [`docs/study_guide.md`](docs/study_guide.md)。
 
@@ -99,8 +103,9 @@ quant-math-roadmap/
 │   ├── roadmap.md  study_guide.md  resources.md
 │   ├── math/                     # 數學概念筆記（cheatsheets）
 │   └── finance/                  # 財務概念筆記
-├── notebooks/                    # Week 0–8 主 notebook
-│   └── solutions/                # 完整參考解答 notebook
+├── notebooks/                    # Week 0–8 主 notebook（繁體中文）
+│   ├── solutions/                # 完整參考解答 notebook
+│   └── en/                       # English edition（含 en/solutions/）
 ├── src/quant_math_roadmap/       # 可重用、可測試的 Python 套件
 │   ├── data/  math/  finance/
 │   ├── time_series/  backtesting/

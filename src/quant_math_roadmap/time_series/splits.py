@@ -68,12 +68,21 @@ def expanding_window_splits(
     initial_train_size: int,
     test_size: int = 1,
     step: int | None = None,
+    gap: int = 0,
 ) -> Iterator[Split]:
     """Yield expanding-window (anchored) walk-forward splits.
 
     The training window always starts at observation ``0`` and grows; each test
-    block immediately follows the current training window. This mimics a
-    researcher who keeps *all* history and re-fits as new data arrives.
+    block follows the current training window after an optional ``gap``. This
+    mimics a researcher who keeps *all* history and re-fits as new data
+    arrives.
+
+    **Purging via** ``gap``: when features or labels span several periods
+    (rolling features, multi-day forward returns), the last training
+    observations *overlap in information* with the first test observations.
+    Leaving a gap of at least the label horizon between train and test —
+    "purging" in the López de Prado sense — removes that contamination. A
+    gap of ``0`` reproduces the plain walk-forward behaviour.
 
     Args:
         n_samples: Total number of observations.
@@ -81,6 +90,8 @@ def expanding_window_splits(
         test_size: Number of observations in each test block.
         step: How far the training window advances between splits. Defaults to
             ``test_size`` (non-overlapping test blocks).
+        gap: Number of observations skipped between the end of training and
+            the start of the test block (``>= 0``).
 
     Yields:
         :class:`Split` objects in chronological order.
@@ -89,14 +100,16 @@ def expanding_window_splits(
         raise ValueError("initial_train_size must be >= 1")
     if test_size < 1:
         raise ValueError("test_size must be >= 1")
+    if gap < 0:
+        raise ValueError("gap must be >= 0")
     advance = test_size if step is None else step
     if advance < 1:
         raise ValueError("step must be >= 1")
 
     train_end = initial_train_size
-    while train_end + test_size <= n_samples:
+    while train_end + gap + test_size <= n_samples:
         train_index = np.arange(0, train_end)
-        test_index = np.arange(train_end, train_end + test_size)
+        test_index = np.arange(train_end + gap, train_end + gap + test_size)
         yield Split(train_index=train_index, test_index=test_index)
         train_end += advance
 
@@ -107,6 +120,7 @@ def rolling_window_splits(
     train_size: int,
     test_size: int = 1,
     step: int | None = None,
+    gap: int = 0,
 ) -> Iterator[Split]:
     """Yield rolling-window (fixed-length) walk-forward splits.
 
@@ -115,12 +129,17 @@ def rolling_window_splits(
     deliberately forgets the distant past. This is the right choice when the
     data-generating process drifts over time.
 
+    See :func:`expanding_window_splits` for the purpose of ``gap`` (purging
+    overlapping-information leakage between adjacent train and test blocks).
+
     Args:
         n_samples: Total number of observations.
         train_size: Fixed size of every training window.
         test_size: Number of observations in each test block.
         step: How far the window advances between splits. Defaults to
             ``test_size``.
+        gap: Number of observations skipped between the end of training and
+            the start of the test block (``>= 0``).
 
     Yields:
         :class:`Split` objects in chronological order.
@@ -129,13 +148,16 @@ def rolling_window_splits(
         raise ValueError("train_size must be >= 1")
     if test_size < 1:
         raise ValueError("test_size must be >= 1")
+    if gap < 0:
+        raise ValueError("gap must be >= 0")
     advance = test_size if step is None else step
     if advance < 1:
         raise ValueError("step must be >= 1")
 
     train_start = 0
-    while train_start + train_size + test_size <= n_samples:
+    while train_start + train_size + gap + test_size <= n_samples:
         train_index = np.arange(train_start, train_start + train_size)
-        test_index = np.arange(train_start + train_size, train_start + train_size + test_size)
+        test_start = train_start + train_size + gap
+        test_index = np.arange(test_start, test_start + test_size)
         yield Split(train_index=train_index, test_index=test_index)
         train_start += advance

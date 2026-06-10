@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from .derivatives import (
+    binomial_american_option,
     binomial_european_option,
+    binomial_greeks,
     call_payoff,
     forward_payoff,
     long_straddle_payoff,
@@ -11,9 +13,12 @@ from .derivatives import (
     put_payoff,
 )
 from .fixed_income import (
+    bond_convexity,
     bond_price,
     discount_curve,
     discount_factor,
+    macaulay_duration,
+    modified_duration,
     present_value,
     yield_to_maturity,
     zero_coupon_bond_price,
@@ -22,16 +27,22 @@ from .metrics import (
     PERIODS_PER_YEAR,
     annualized_mean,
     annualized_volatility,
+    calmar_ratio,
     correlation_matrix,
     covariance_matrix,
+    deflated_sharpe_ratio,
+    expected_max_sharpe,
     max_drawdown,
     periods_per_year,
+    probabilistic_sharpe_ratio,
     sharpe_ratio,
+    sortino_ratio,
     turnover,
 )
 from .portfolio import (
     buy_and_hold_weights,
     equal_weights,
+    ledoit_wolf_covariance,
     minimum_variance_portfolio,
     portfolio_return,
     portfolio_variance,
@@ -47,6 +58,17 @@ from .returns import (
 )
 
 __all__ = [
+    "binomial_american_option",
+    "binomial_greeks",
+    "bond_convexity",
+    "calmar_ratio",
+    "deflated_sharpe_ratio",
+    "expected_max_sharpe",
+    "ledoit_wolf_covariance",
+    "macaulay_duration",
+    "modified_duration",
+    "probabilistic_sharpe_ratio",
+    "sortino_ratio",
     "PERIODS_PER_YEAR",
     "annualized_mean",
     "annualized_volatility",

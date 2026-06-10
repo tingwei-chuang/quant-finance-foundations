@@ -16,6 +16,7 @@ from .parts import (
     footer_references,
     header,
     mistakes,
+    quiz_cells,
 )
 
 
@@ -88,6 +89,26 @@ def week(solution: bool) -> list[nbf.NotebookNode]:
             "print(f'訓練集: {len(train)} 期 | 測試集: {len(test)} 期')\n"
             "print('訓練集最後一天 <', '測試集第一天:',\n"
             "      train.index[-1] < test.index[0])"
+        ),
+        md(
+            "### Purged splits：在 train/test 之間留一道防火巷\n\n"
+            "當特徵或標籤**橫跨多期**（rolling 特徵、多日 forward return），"
+            "緊鄰的訓練尾端與測試開頭其實**共享同一段資訊**——即使切分嚴格按時間"
+            "排序，邊界上仍有洩漏。解法是「purging」：在 train 與 test 之間"
+            "留出至少等於資訊重疊長度的 **gap**。`expanding_window_splits` 與 "
+            "`rolling_window_splits` 都支援 `gap` 參數。"
+        ),
+        code(
+            "with_gap = list(expanding_window_splits(\n"
+            "    len(returns), initial_train_size=600, test_size=50, gap=10))\n"
+            "no_gap = list(expanding_window_splits(\n"
+            "    len(returns), initial_train_size=600, test_size=50, gap=0))\n"
+            "s_gap, s_plain = with_gap[0], no_gap[0]\n"
+            "print(f'無 gap:  train 結束於 {s_plain.train_index.max()}, '\n"
+            "      f'test 開始於 {s_plain.test_index.min()}')\n"
+            "print(f'gap=10: train 結束於 {s_gap.train_index.max()}, '\n"
+            "      f'test 開始於 {s_gap.test_index.min()}  <- 中間 10 期不用於任何一邊')\n"
+            "print('若特徵用了 10 期 rolling 視窗，gap >= 10 才能保證邊界乾淨。')"
         ),
         md("### 預測模型 vs naive baseline"),
         code(
@@ -170,6 +191,66 @@ def week(solution: bool) -> list[nbf.NotebookNode]:
         ),
         md("交易成本把 gross 與 net 拉開明顯差距。**只看 gross 的回測是不誠實的。**"),
         md(
+            "### 多資產版本：用權重排程回測整個投資組合\n\n"
+            "單資產引擎的所有紀律——位移、成本、gross vs net——同樣適用於"
+            "多資產。`run_portfolio_backtest()` 吃一張**目標權重表**（每列是"
+            "當天根據已知資訊算出的權重），自動位移一期、按權重變動量收取成本。"
+        ),
+        code(
+            "from quant_math_roadmap.backtesting import run_portfolio_backtest\n"
+            "panel_cfg = SyntheticConfig(n_assets=4, n_periods=900, seed=44,\n"
+            "                            average_correlation=0.3)\n"
+            "panel_prices = generate_correlated_prices(panel_cfg)\n"
+            "panel_returns = simple_returns(panel_prices)\n"
+            "\n"
+            "# 簡單示範：固定等權重 vs 30 天動能傾斜權重\n"
+            "eq_weights = pd.DataFrame(0.25, index=panel_returns.index,\n"
+            "                          columns=panel_returns.columns)\n"
+            "momentum = panel_returns.rolling(30).mean()\n"
+            "tilt = momentum.rank(axis=1)  # 以動能排名作為權重基礎\n"
+            "tilt = tilt.div(tilt.sum(axis=1), axis=0).fillna(0.0)\n"
+            "\n"
+            "res_eq = run_portfolio_backtest(eq_weights, panel_returns,\n"
+            "                                cost_per_unit_turnover=0.0005)\n"
+            "res_tilt = run_portfolio_backtest(tilt, panel_returns,\n"
+            "                                  cost_per_unit_turnover=0.0005)\n"
+            "print('等權重     :', {k: round(v, 4) for k, v in res_eq.summary().items()})\n"
+            "print('動能傾斜   :', {k: round(v, 4) for k, v in res_tilt.summary().items()})\n"
+            "print('注意動能版的 avg_turnover 與 cost_drag 明顯較高。')"
+        ),
+        md(
+            "### 參數掃描：親手看見 curve-fitting\n\n"
+            "最後一課：把一個只有一個旋鈕的策略（trailing momentum 的 lookback），"
+            "對一排候選值各跑一次回測，把 **in-sample** 與 **out-of-sample** 的 "
+            "Sharpe 並排畫出來。IS 最高的那個參數，OOS 通常毫不出色——那段差距"
+            "就是 curve-fitting 的代價。"
+        ),
+        code(
+            "from quant_math_roadmap.backtesting import lookback_parameter_sweep\n"
+            "\n"
+            "lookbacks = [3, 5, 8, 13, 21, 34, 55, 89]\n"
+            "sweep = lookback_parameter_sweep(returns, lookbacks,\n"
+            "                                 in_sample_fraction=0.6,\n"
+            "                                 cost_per_unit_turnover=0.0005)\n"
+            "print(sweep[['is_sharpe', 'oos_sharpe']].round(3))\n"
+            "best_is = sweep['is_sharpe'].idxmax()\n"
+            "print(f'IS 最佳 lookback = {best_is}, 其 OOS Sharpe = '\n"
+            "      f\"{sweep.loc[best_is, 'oos_sharpe']:.3f}\")"
+        ),
+        code(
+            "fig, ax = plt.subplots(figsize=(9, 4.5))\n"
+            "ax.plot(sweep.index, sweep['is_sharpe'], marker='o', label='in-sample Sharpe')\n"
+            "ax.plot(sweep.index, sweep['oos_sharpe'], marker='s', label='out-of-sample Sharpe')\n"
+            "ax.axvline(best_is, linestyle='--', alpha=0.5,\n"
+            "           label=f'IS 最佳 lookback = {best_is}')\n"
+            "ax.set_title('參數掃描：in-sample 贏家在 out-of-sample 的真面目')\n"
+            "ax.set_xlabel('momentum lookback（期）')\n"
+            "ax.set_ylabel('年化 Sharpe')\n"
+            "ax.legend()\n"
+            "plt.show()\n"
+            "print('IS 曲線的高峰大多是雜訊的形狀；OOS 曲線才接近真實期望。')"
+        ),
+        md(
             "### 刻意展示 data leakage（無效示範）\n\n"
             "下面這個實驗**故意作弊**：它用「**當期**報酬的正負號」當部位——"
             "這需要知道未來。它必然每期都賺，績效荒謬地好。\n\n"
@@ -246,6 +327,51 @@ def week(solution: bool) -> list[nbf.NotebookNode]:
             "1. 回顧 Week 1–7。一個看起來很賺的回測，可能在哪些環節偷偷"
             "引入了 leakage、過度配適或多重檢定的問題？請至少列出三點，"
             f"並對照 [`docs/common_backtesting_mistakes.md`]({docs_prefix(solution)}common_backtesting_mistakes.md)。"
+        ),
+        *quiz_cells(
+            solution,
+            week=8,
+            items=[
+                (
+                    "部位必須由訊號往後位移至少一期，因為？",
+                    [
+                        "可以提高報酬",
+                        "t 期收盤才算出的訊號最快只能在下一期交易",
+                        "可以減少交易成本",
+                        "讓曲線更平滑",
+                    ],
+                    "B",
+                    "不位移就等於用當期（未來）資訊交易——最常見的 look-ahead bias。",
+                ),
+                (
+                    "expanding 與 rolling window 的差別是？",
+                    [
+                        "expanding 視窗固定長度",
+                        "rolling 視窗固定長度、會逐漸遺忘較舊資料",
+                        "兩者完全相同",
+                        "rolling 不能用在時間序列",
+                    ],
+                    "B",
+                    "expanding 錨定起點越學越多；rolling 固定長度，適合資料生成過程會漂移時。",
+                ),
+                (
+                    "purge gap（train/test 之間留空隙）的目的是？",
+                    [
+                        "加快計算",
+                        "移除邊界上重疊資訊（如多期報酬標籤）造成的洩漏",
+                        "增加樣本數",
+                        "降低交易成本",
+                    ],
+                    "B",
+                    "當特徵或標籤橫跨多期時，緊鄰的 train/test 共享資訊；留 gap 把它清掉。",
+                ),
+                (
+                    "參數掃描後選出 in-sample 最佳參數，其 out-of-sample 表現通常？",
+                    ["一樣好", "更好", "明顯較差——一部分 IS 績效是運氣", "無法計算"],
+                    "C",
+                    "IS 最佳者同時是「最幸運者」；OOS 沒了運氣成分，表現向平均回歸。",
+                ),
+            ],
         ),
         mistakes(
             [

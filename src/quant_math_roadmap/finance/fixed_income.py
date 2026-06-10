@@ -137,6 +137,147 @@ def zero_coupon_bond_price(
     )
 
 
+def _bond_cash_flows(
+    face_value: float,
+    coupon_rate: float,
+    years_to_maturity: float,
+    coupons_per_year: int,
+) -> tuple[list[float], list[float]]:
+    """Return the ``(cash_flows, times)`` schedule of a fixed-coupon bond."""
+    if face_value <= 0:
+        raise ValueError("face_value must be positive")
+    if years_to_maturity <= 0:
+        raise ValueError("years_to_maturity must be positive")
+    if coupons_per_year < 1:
+        raise ValueError("coupons_per_year must be >= 1")
+    n_periods = years_to_maturity * coupons_per_year
+    if not np.isclose(n_periods, round(n_periods)):
+        raise ValueError("years_to_maturity must be a whole number of coupon periods")
+    n_periods = int(round(n_periods))
+    coupon = face_value * coupon_rate / coupons_per_year
+    cash_flows = [coupon] * n_periods
+    cash_flows[-1] += face_value
+    times = [(i + 1) / coupons_per_year for i in range(n_periods)]
+    return cash_flows, times
+
+
+def macaulay_duration(
+    face_value: float,
+    coupon_rate: float,
+    years_to_maturity: float,
+    yield_to_maturity: float,
+    *,
+    coupons_per_year: int = 2,
+) -> float:
+    """Macaulay duration: the PV-weighted average time of a bond's cash flows.
+
+    Duration is the natural "centre of mass" of a bond: a zero-coupon bond's
+    Macaulay duration equals its maturity exactly, and coupons pull duration
+    below maturity. It is the first step toward measuring interest-rate risk.
+
+    Args:
+        face_value: Principal repaid at maturity.
+        coupon_rate: Annual coupon rate.
+        years_to_maturity: Maturity in years (whole number of coupon periods).
+        yield_to_maturity: Annual yield used to discount cash flows.
+        coupons_per_year: Coupon payment frequency.
+
+    Returns:
+        The Macaulay duration, in years.
+    """
+    cash_flows, times = _bond_cash_flows(
+        face_value, coupon_rate, years_to_maturity, coupons_per_year
+    )
+    pvs = np.array(
+        [
+            cf * discount_factor(yield_to_maturity, t, periods_per_year=coupons_per_year)
+            for cf, t in zip(cash_flows, times, strict=True)
+        ]
+    )
+    price = float(pvs.sum())
+    return float(np.dot(times, pvs) / price)
+
+
+def modified_duration(
+    face_value: float,
+    coupon_rate: float,
+    years_to_maturity: float,
+    yield_to_maturity: float,
+    *,
+    coupons_per_year: int = 2,
+) -> float:
+    """Modified duration: the bond's percentage price sensitivity to yield.
+
+    ``D_mod = -(1/P) dP/dy = D_Macaulay / (1 + y/m)``. A modified duration of
+    7 means a 1-percentage-point rise in yield knocks roughly 7% off the
+    price (to first order — convexity captures the curvature beyond that).
+
+    Args:
+        face_value: Principal repaid at maturity.
+        coupon_rate: Annual coupon rate.
+        years_to_maturity: Maturity in years (whole number of coupon periods).
+        yield_to_maturity: Annual yield used to discount cash flows.
+        coupons_per_year: Coupon payment frequency.
+
+    Returns:
+        The modified duration, in years.
+    """
+    macaulay = macaulay_duration(
+        face_value,
+        coupon_rate,
+        years_to_maturity,
+        yield_to_maturity,
+        coupons_per_year=coupons_per_year,
+    )
+    return macaulay / (1.0 + yield_to_maturity / coupons_per_year)
+
+
+def bond_convexity(
+    face_value: float,
+    coupon_rate: float,
+    years_to_maturity: float,
+    yield_to_maturity: float,
+    *,
+    coupons_per_year: int = 2,
+) -> float:
+    """Convexity: the second-order price sensitivity ``(1/P) d²P/dy²``.
+
+    Duration alone linearises the price/yield curve; convexity corrects for
+    its curvature. The second-order price approximation is::
+
+        ΔP/P ≈ -D_mod · Δy + 0.5 · C · Δy²
+
+    For plain (option-free) bonds convexity is positive: prices fall less for
+    a yield rise, and gain more for a yield fall, than duration alone implies.
+
+    Args:
+        face_value: Principal repaid at maturity.
+        coupon_rate: Annual coupon rate.
+        years_to_maturity: Maturity in years (whole number of coupon periods).
+        yield_to_maturity: Annual yield used to discount cash flows.
+        coupons_per_year: Coupon payment frequency.
+
+    Returns:
+        The convexity, in years².
+    """
+    cash_flows, times = _bond_cash_flows(
+        face_value, coupon_rate, years_to_maturity, coupons_per_year
+    )
+    m = coupons_per_year
+    y = yield_to_maturity
+    per_period = 1.0 + y / m
+    if per_period <= 0.0:
+        raise ValueError("yield gives a non-positive per-period gross factor")
+    price = 0.0
+    second_derivative = 0.0
+    for cf, t in zip(cash_flows, times, strict=True):
+        df = per_period ** (-m * t)
+        price += cf * df
+        # d²/dy² of (1+y/m)^(-m t) = t (t + 1/m) (1+y/m)^(-m t - 2)
+        second_derivative += cf * t * (t + 1.0 / m) * per_period ** (-m * t - 2.0)
+    return float(second_derivative / price)
+
+
 def yield_to_maturity(
     price: float,
     face_value: float,

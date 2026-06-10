@@ -15,6 +15,7 @@ from .parts import (
     footer_references,
     header,
     mistakes,
+    quiz_cells,
 )
 
 
@@ -90,6 +91,45 @@ def week(solution: bool) -> list[nbf.NotebookNode]:
             "print(f'10 年期零息債券（殖利率 5%）價格 = {zcb:.2f}')"
         ),
         md("殖利率上升，債券價格下降；票息率等於殖利率時，債券以面額（par）定價。"),
+        md(
+            "### Duration 與 Convexity：債券的利率敏感度\n\n"
+            "知道價格如何隨殖利率變動，比知道單一價格更有用：\n\n"
+            "- **Macaulay duration**：現金流以現值加權的平均到達時間（年）。"
+            "零息債券的 duration 恰等於到期年限。\n"
+            "- **Modified duration** $D_{mod} = -\\frac{1}{P}\\frac{dP}{dy}$："
+            "殖利率每變動 1 個百分點，價格大約變動 $D_{mod}$%。\n"
+            "- **Convexity** $C = \\frac{1}{P}\\frac{d^2P}{dy^2}$：曲率修正，"
+            "二階近似為 $\\Delta P/P \\approx -D_{mod}\\Delta y + \\tfrac12 C (\\Delta y)^2$。"
+        ),
+        code(
+            "from quant_math_roadmap.finance.fixed_income import (\n"
+            "    bond_convexity, macaulay_duration, modified_duration,\n"
+            ")\n"
+            "\n"
+            "args = dict(face_value=1000, coupon_rate=0.05,\n"
+            "            years_to_maturity=10, yield_to_maturity=0.04)\n"
+            "mac = macaulay_duration(**args)\n"
+            "mod = modified_duration(**args)\n"
+            "conv = bond_convexity(**args)\n"
+            "print(f'Macaulay duration = {mac:.4f} 年')\n"
+            "print(f'Modified duration = {mod:.4f}')\n"
+            "print(f'Convexity         = {conv:.4f}')\n"
+            "\n"
+            "# 用「真實重新定價 vs 一階/二階近似」驗證這兩個數字的意義\n"
+            "p0 = bond_price(1000, 0.05, 10, 0.04, coupons_per_year=2)\n"
+            "dy = 0.01  # 殖利率 +100bp\n"
+            "p1 = bond_price(1000, 0.05, 10, 0.04 + dy, coupons_per_year=2)\n"
+            "actual = p1 / p0 - 1\n"
+            "first_order = -mod * dy\n"
+            "second_order = -mod * dy + 0.5 * conv * dy**2\n"
+            "print(f'實際價格變動    = {actual:+.4%}')\n"
+            "print(f'一階(duration)  = {first_order:+.4%}')\n"
+            "print(f'二階(+convexity)= {second_order:+.4%}  <- 更貼近實際')"
+        ),
+        md(
+            "零息債券檢查：`macaulay_duration(1000, 0.0, 5, 0.04, coupons_per_year=1)`"
+            " 會精確回傳 5.0 年——唯一一筆現金流就在到期日。"
+        ),
         md("### Payoff 圖"),
         code(
             "spot_grid = np.linspace(50, 150, 200)\n"
@@ -133,6 +173,52 @@ def week(solution: bool) -> list[nbf.NotebookNode]:
             "ax.legend()\n"
             "plt.show()\n"
             "print('波動度越高，選擇權越貴 — 因為更大的不確定性對買方有利。')"
+        ),
+        md(
+            "### 美式選擇權：一個 max 的差別\n\n"
+            "美式選擇權可以**提前履約**。在 binomial tree 上，這只是把每個節點的"
+            "回溯值改成 `max(繼續持有的折現期望, 立刻履約的內含價值)`。兩個經典結論"
+            "可以直接數值驗證：\n\n"
+            "1. **無股利標的的美式 call = 歐式 call**（提前履約永遠不划算）；\n"
+            "2. **美式 put ≥ 歐式 put**（深價內時提早收到履約金有時間價值）。"
+        ),
+        code(
+            "from quant_math_roadmap.finance.derivatives import binomial_american_option\n"
+            "\n"
+            "common = dict(spot=100.0, strike=110.0, rate=0.06,\n"
+            "              volatility=0.2, maturity=2.0, n_steps=300)\n"
+            "eu_call = binomial_european_option(option_type='call', **common)\n"
+            "am_call = binomial_american_option(option_type='call', **common)\n"
+            "eu_put = binomial_european_option(option_type='put', **common)\n"
+            "am_put = binomial_american_option(option_type='put', **common)\n"
+            "print(f'歐式 call = {eu_call:.4f} | 美式 call = {am_call:.4f}  (相等)')\n"
+            "print(f'歐式 put  = {eu_put:.4f} | 美式 put  = {am_put:.4f}  (美式較貴)')\n"
+            "print(f'美式 put 的提前履約溢價 = {am_put - eu_put:.4f}')"
+        ),
+        md(
+            "### Greeks：價格對每個輸入的敏感度\n\n"
+            "**Greeks** 回答「輸入動一點，價格動多少」。`binomial_greeks()` 用"
+            "有限差分直接在樹上估計：\n\n"
+            "| Greek | 定義 | 直覺 |\n"
+            "|-------|------|------|\n"
+            "| delta | ∂V/∂S | 標的漲 1 元，選擇權漲多少 |\n"
+            "| gamma | ∂²V/∂S² | delta 本身變多快 |\n"
+            "| vega  | ∂V/∂σ | 波動度升 1 單位的影響 |\n"
+            "| theta | −∂V/∂T | 時間流逝一年的損耗 |\n"
+            "| rho   | ∂V/∂r | 利率升 1 單位的影響 |\n\n"
+            "> 樹上的有限差分是「近似的近似」，數字會有小幅抖動——這是教學工具，"
+            "不是生產級定價器。"
+        ),
+        code(
+            "from quant_math_roadmap.finance.derivatives import binomial_greeks\n"
+            "\n"
+            "greeks_call = binomial_greeks(100, 100, 0.05, 0.2, 1.0, option_type='call')\n"
+            "greeks_put = binomial_greeks(100, 100, 0.05, 0.2, 1.0, option_type='put')\n"
+            "for name in ['delta', 'gamma', 'vega', 'theta', 'rho']:\n"
+            "    print(f'{name:>6}: call = {greeks_call[name]:>9.4f} | put = {greeks_put[name]:>9.4f}')\n"
+            "print()\n"
+            "print(f'delta_call - delta_put = {greeks_call['delta'] - greeks_put['delta']:.6f}'\n"
+            "      '  (put-call parity 預言這個差恰為 1)')"
         ),
         exercises_intro(),
         md(
@@ -181,6 +267,41 @@ def week(solution: bool) -> list[nbf.NotebookNode]:
             "### 反思問題\n\n"
             "1. binomial 模型價格與真實市場價格幾乎不會完全相同。"
             "這對「用模型價格設計交易策略」有什麼提醒？"
+        ),
+        *quiz_cells(
+            solution,
+            week=6,
+            items=[
+                (
+                    "殖利率上升時，債券價格？",
+                    ["上升", "下降", "不變", "視票息而定"],
+                    "B",
+                    "未來現金流以更高利率折現，現值必然下降——債券定價第一定律。",
+                ),
+                (
+                    "零息債券的 Macaulay duration 等於？",
+                    ["0", "到期年限", "殖利率", "票面利率"],
+                    "B",
+                    "只有一筆到期現金流，加權平均時間就是到期年限本身。",
+                ),
+                (
+                    "無股利標的的美式 call 相對歐式 call 的價格？",
+                    ["較高", "相等", "較低", "不一定"],
+                    "B",
+                    "提前履約放棄時間價值且無股利可收，永遠不划算，所以兩者等價。",
+                ),
+                (
+                    "convexity 為正代表什麼？",
+                    [
+                        "殖利率下跌時的漲幅大於 duration 線性估計",
+                        "價格與殖利率成正比",
+                        "債券有違約風險",
+                        "duration 為負",
+                    ],
+                    "A",
+                    "價格-殖利率曲線向下凸：跌得比線性少、漲得比線性多。",
+                ),
+            ],
         ),
         mistakes(
             [

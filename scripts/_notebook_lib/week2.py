@@ -15,6 +15,7 @@ from .parts import (
     footer_references,
     header,
     mistakes,
+    quiz_cells,
 )
 
 
@@ -176,6 +177,30 @@ def week(solution: bool) -> list[nbf.NotebookNode]:
             "shrinkage 越強，權重越被拉向 equal-weight、越不極端。這以一點偏誤"
             "換取大幅的穩定度，往往改善樣本外表現。"
         ),
+        md(
+            "### Ledoit–Wolf：讓資料自己決定 shrinkage 強度\n\n"
+            "上面我們手動嘗試了幾個 shrinkage 強度——但「該選多強」本身就是一個"
+            "估計問題。Ledoit & Wolf (2004) 推導出**使期望估計誤差最小**的最適強度，"
+            "可以直接從資料計算出來。`ledoit_wolf_covariance()` 包裝了 scikit-learn "
+            "的實作，回傳共變異數矩陣與資料驅動的 shrinkage 係數。"
+        ),
+        code(
+            "from quant_math_roadmap.finance.portfolio import ledoit_wolf_covariance\n"
+            "\n"
+            "lw_cov, lw_shrinkage = ledoit_wolf_covariance(train)\n"
+            "print(f'Ledoit-Wolf 自動選出的 shrinkage 強度 = {lw_shrinkage:.4f}')\n"
+            "\n"
+            "w_lw = minimum_variance_portfolio(lw_cov.to_numpy())\n"
+            "out_lw = portfolio_variance(w_lw, cov_test)\n"
+            "print(f'樣本共變異數 MVP 的 out-of-sample 變異數 = {out_sample:.8f}')\n"
+            "print(f'Ledoit-Wolf  MVP 的 out-of-sample 變異數 = {out_lw:.8f}')\n"
+            "print(f'equal-weight     的 out-of-sample 變異數 = {eq_out:.8f}')"
+        ),
+        md(
+            "Ledoit–Wolf 不需要任何手動調參，就把權重的極端程度自動控制在資料"
+            "支持的範圍內。在資產數量多、樣本相對短的情境（量化研究的常態），"
+            "它通常是比原始樣本共變異數更穩健的預設選擇。"
+        ),
         exercises_intro(),
         md(
             "### 基礎練習\n\n"
@@ -223,6 +248,36 @@ def week(solution: bool) -> list[nbf.NotebookNode]:
             "### 反思問題\n\n"
             "1. 最小變異投組在樣本內一定贏 equal-weight，樣本外卻不一定。"
             "這個現象和 Week 8 的「過度配適 in-sample 期間」有什麼關聯？"
+        ),
+        *quiz_cells(
+            solution,
+            week=2,
+            items=[
+                (
+                    "最小變異投組的封閉解 w* 是？",
+                    ["Σ1 / (1ᵀΣ1)", "Σ⁻¹1 / (1ᵀΣ⁻¹1)", "1/n 等權重", "Σ⁻¹μ"],
+                    "B",
+                    "由 Lagrangian 對 w 求導並用約束 1ᵀw=1 正規化即得。",
+                ),
+                (
+                    "f(w) = wᵀΣw 的梯度是？",
+                    ["Σw", "2Σw", "wᵀΣ", "2w"],
+                    "B",
+                    "對稱矩陣的 quadratic form 梯度為 2Σw——這是 Week 2 的核心導數。",
+                ),
+                (
+                    "Hessian 為 PSD 代表目標函數具有什麼性質？",
+                    ["凸（convex）", "凹（concave）", "線性", "週期性"],
+                    "A",
+                    "PSD Hessian ⟺ 凸函數，保證最小化問題行為良好。",
+                ),
+                (
+                    "對噪音很大的共變異數估計直接求逆，最常見的後果是？",
+                    ["程式直接報錯", "得到極端且不穩定的投組權重", "報酬變高", "變異數變成負值"],
+                    "B",
+                    "矩陣求逆會放大估計誤差，產生大幅多空對沖的極端權重——shrinkage 的動機。",
+                ),
+            ],
         ),
         mistakes(
             [

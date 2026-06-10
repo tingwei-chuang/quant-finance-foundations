@@ -15,6 +15,7 @@ from .parts import (
     footer_references,
     header,
     mistakes,
+    quiz_cells,
 )
 
 
@@ -84,6 +85,26 @@ def week(solution: bool) -> list[nbf.NotebookNode]:
             "print(f't 分布   95% 信賴區間 = [{lower:.6f}, {upper:.6f}]')\n"
             "print('兩種方法給出相近的區間；bootstrap 不需要常態假設。')"
         ),
+        md(
+            "### Block bootstrap：當報酬有自相關時\n\n"
+            "普通 bootstrap 把每個觀測值當成獨立可重抽——這隱含 i.i.d. 假設。"
+            "若報酬有**自相關**（動能型策略的報酬常有），普通 bootstrap 會"
+            "**低估**平均報酬的不確定性。**circular block bootstrap** 改成整塊"
+            "連續區段重抽，保留區塊內的相依結構。\n\n"
+            "下面用一個高自相關的 AR(1) 序列示範兩種方法的差距。"
+        ),
+        code(
+            "from quant_math_roadmap.math.statistics import block_bootstrap_mean_ci\n"
+            "from quant_math_roadmap.data import generate_ar1_series\n"
+            "\n"
+            "# phi=0.9 的 AR(1)：有效樣本數遠小於名目樣本數\n"
+            "persistent = generate_ar1_series(2000, phi=0.9, seed=7).to_numpy()\n"
+            "plain_ci = bootstrap_mean_ci(persistent, seed=0)\n"
+            "block_ci = block_bootstrap_mean_ci(persistent, block_size=50, seed=0)\n"
+            "print(f'普通 bootstrap  95% CI 寬度 = {plain_ci[1] - plain_ci[0]:.4f}')\n"
+            "print(f'block bootstrap 95% CI 寬度 = {block_ci[1] - block_ci[0]:.4f}')\n"
+            "print('自相關資料下，普通 bootstrap 給出過窄（過度自信）的區間。')"
+        ),
         md("### 比較兩個合成策略"),
         code(
             "strategy_a = simulate_normal(mean=0.0002, std=0.010, size=252, seed=1)\n"
@@ -131,6 +152,41 @@ def week(solution: bool) -> list[nbf.NotebookNode]:
         md(
             "這條曲線完全由雜訊產生，卻可能比真正有訊號的策略還漂亮。"
             "**一條漂亮的權益曲線無法證明策略有效。**"
+        ),
+        md(
+            "### 把「多重檢定」變成數字：PSR 與 Deflated Sharpe Ratio\n\n"
+            "前面示範了「測試夠多策略，總有幾個看起來顯著」。Bailey 與 "
+            "López de Prado 把這個警告變成可計算的指標：\n\n"
+            "- **PSR（Probabilistic Sharpe Ratio）**：考慮樣本長度、偏態與峰度後，"
+            "「真實 Sharpe 大於基準」的機率；\n"
+            "- **DSR（Deflated Sharpe Ratio）**：把基準從 0 提高到"
+            "「N 個無技能策略中最幸運者的期望 Sharpe」——你試過越多策略，"
+            "入選者要跨過的門檻就越高。"
+        ),
+        code(
+            "from quant_math_roadmap.finance.metrics import (\n"
+            "    deflated_sharpe_ratio, expected_max_sharpe, probabilistic_sharpe_ratio,\n"
+            ")\n"
+            "\n"
+            "# 用前面那批 500 檔純雜訊策略：挑出總報酬最高的「冠軍」\n"
+            "best_returns = pd.Series(best)\n"
+            "\n"
+            "# 各策略的每期 Sharpe 估計值，其跨策略標準差用於期望最大值公式\n"
+            "per_period_sr = noise.mean(axis=1) / noise.std(axis=1, ddof=1)\n"
+            "sr_std = float(per_period_sr.std(ddof=1))\n"
+            "\n"
+            "psr = probabilistic_sharpe_ratio(best_returns)\n"
+            "benchmark = expected_max_sharpe(500, sr_std=sr_std)\n"
+            "dsr = deflated_sharpe_ratio(best_returns, n_trials=500, sr_std=sr_std)\n"
+            "print(f'冠軍策略的 PSR（基準 SR=0）  = {psr:.4f}  <- 看起來頗有把握')\n"
+            "print(f'500 試誤下的期望最大 SR      = {benchmark:.4f}')\n"
+            "print(f'冠軍策略的 DSR（扣除選擇效應）= {dsr:.4f}  <- 原形畢露')"
+        ),
+        md(
+            "PSR 看起來很高——但那只是因為我們**挑了最幸運的一檔**。把"
+            "「試了 500 次」誠實地放進基準後，DSR 立刻塌回去：這檔策略的"
+            "「優異」表現與純運氣無法區分。**報告回測結果時，必須一併報告"
+            "你總共試了多少組合。**"
         ),
         md("### 風險調整指標的警語"),
         code(
@@ -188,6 +244,46 @@ def week(solution: bool) -> list[nbf.NotebookNode]:
             "### 反思問題\n\n"
             "1. 你在大量參數組合中找到一個回測表現很好的策略。在相信它之前，"
             "你應該對「多重檢定」與「樣本外驗證」做哪些事？"
+        ),
+        *quiz_cells(
+            solution,
+            week=4,
+            items=[
+                (
+                    "p-value 的正確定義是？",
+                    [
+                        "虛無假設為真的機率",
+                        "在虛無假設為真的前提下，看到目前或更極端結果的機率",
+                        "策略有效的機率",
+                        "犯第一類錯誤的機率",
+                    ],
+                    "B",
+                    "p-value 是條件機率 P(資料這麼極端 | H₀ 為真)，不是 H₀ 或策略本身的機率。",
+                ),
+                (
+                    "95% 信賴區間的正確解讀是？",
+                    [
+                        "參數有 95% 機率落在區間內",
+                        "重複抽樣下，約 95% 的區間會涵蓋真實參數",
+                        "95% 的資料落在區間內",
+                        "預測準確率為 95%",
+                    ],
+                    "B",
+                    "隨機的是「區間」而不是參數——這是頻率學派信賴區間的定義。",
+                ),
+                (
+                    "測試 100 個純雜訊策略、顯著水準 α=0.05，期望有幾個「顯著」？",
+                    ["0 個", "1 個", "5 個", "50 個"],
+                    "C",
+                    "每個檢定有 5% 假陽性率，期望 100 × 0.05 = 5 個——多重檢定的核心問題。",
+                ),
+                (
+                    "block bootstrap 相對普通 bootstrap 的目的為何？",
+                    ["計算更快", "保留資料的自相關結構", "讓樣本更大", "降低變異數"],
+                    "B",
+                    "整塊重抽保留了短期相依性；自相關資料用普通 bootstrap 會低估不確定性。",
+                ),
+            ],
         ),
         mistakes(
             [

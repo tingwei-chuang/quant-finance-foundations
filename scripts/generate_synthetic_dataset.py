@@ -12,6 +12,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 from quant_math_roadmap.data.synthetic import SyntheticConfig, generate_correlated_prices
@@ -36,8 +37,15 @@ SAMPLE_CONFIG = SyntheticConfig(
 )
 
 
-def main() -> None:
-    """Generate and write the synthetic price dataset."""
+def _render_csv() -> str:
+    """Generate the dataset in memory and render it exactly as written to disk."""
+    prices = generate_correlated_prices(SAMPLE_CONFIG)
+    validate_price_frame(prices, require_business_days=True).raise_if_failed()
+    return prices.round(6).to_csv()
+
+
+def main() -> int:
+    """Generate (or verify) the synthetic price dataset."""
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -48,20 +56,42 @@ def main() -> None:
         default=DEFAULT_OUTPUT,
         help="destination CSV path (default: data/sample/synthetic_prices.csv)",
     )
+    parser.add_argument(
+        "--verify",
+        action="store_true",
+        help="do not write anything; regenerate in memory and exit non-zero "
+        "if the committed CSV differs from the generator output. Used by CI "
+        "as a reproducibility guarantee for the sample dataset.",
+    )
     args = parser.parse_args()
 
-    prices = generate_correlated_prices(SAMPLE_CONFIG)
+    rendered = _render_csv()
 
-    report = validate_price_frame(prices, require_business_days=True)
-    report.raise_if_failed()
+    if args.verify:
+        if not args.output.exists():
+            print(f"VERIFY FAILED: {args.output} does not exist.", file=sys.stderr)
+            return 1
+        # Normalise line endings so the check is OS-independent.
+        committed = args.output.read_text().replace("\r\n", "\n")
+        if committed != rendered.replace("\r\n", "\n"):
+            print(
+                f"VERIFY FAILED: {args.output} differs from the generator "
+                "output. Regenerate it with:\n"
+                "    uv run python scripts/generate_synthetic_dataset.py",
+                file=sys.stderr,
+            )
+            return 1
+        print(f"OK: {args.output} matches the generator (seed {SAMPLE_CONFIG.seed}).")
+        return 0
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    prices.round(6).to_csv(args.output)
+    args.output.write_text(rendered)
 
-    print(f"Wrote {prices.shape[0]} rows x {prices.shape[1]} assets to {args.output}")
-    print(f"Date range: {prices.index[0].date()} .. {prices.index[-1].date()}")
+    n_rows = rendered.count("\n") - 1
+    print(f"Wrote {n_rows} rows to {args.output}")
     print(f"Seed: {SAMPLE_CONFIG.seed} (reproducible)")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

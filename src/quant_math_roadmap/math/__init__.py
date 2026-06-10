@@ -28,6 +28,7 @@ from .probability import (
 from .statistics import (
     OLSResult,
     TTestResult,
+    block_bootstrap_mean_ci,
     bootstrap_mean_ci,
     confidence_interval_mean,
     false_discovery_demo,
@@ -37,6 +38,7 @@ from .statistics import (
 )
 
 __all__ = [
+    "block_bootstrap_mean_ci",
     "OLSResult",
     "TTestResult",
     "add_intercept",
