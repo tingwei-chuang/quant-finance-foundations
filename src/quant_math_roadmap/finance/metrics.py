@@ -110,7 +110,9 @@ def sharpe_ratio(
     per_period_rf = risk_free_rate / scale
     excess = returns - per_period_rf
     vol = excess.std(ddof=1)
-    if vol == 0 or np.isnan(vol):
+    # ``vol == 0`` is too strict: a numerically-constant series produces a
+    # tiny but non-zero float std and would otherwise yield an absurd Sharpe.
+    if np.isnan(vol) or vol < 1e-12:
         return 0.0
     return float(excess.mean() / vol * np.sqrt(scale))
 

@@ -65,6 +65,11 @@ class SyntheticConfig:
             raise ValueError("initial_price must be positive")
         if self.vol_regime_multiplier <= 0.0:
             raise ValueError("vol_regime_multiplier must be positive")
+        if self.asset_names is not None and len(self.asset_names) != self.n_assets:
+            raise ValueError(
+                f"asset_names must have length n_assets={self.n_assets}, "
+                f"got {len(self.asset_names)}"
+            )
 
 
 def _broadcast(value: float | list[float], n: int, name: str) -> np.ndarray:

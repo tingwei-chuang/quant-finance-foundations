@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import numpy as np
 import pandas as pd
 
 
@@ -82,6 +83,13 @@ def validate_price_frame(
     if missing > 0:
         report.add(f"found {missing} missing value(s)")
 
+    # Infinite values pass the NaN check above but break every downstream
+    # calculation (returns, log returns, volatility, ...) silently.
+    non_finite = int(((~prices.isna()) & (~np.isfinite(prices))).sum().sum())
+    if non_finite > 0:
+        report.add(f"found {non_finite} non-finite (inf/-inf) price(s)")
+
+    # NaN <= 0 already evaluates False, so missing values are not double-counted.
     non_positive = int((prices <= 0).sum().sum())
     if non_positive > 0:
         report.add(f"found {non_positive} non-positive price(s)")

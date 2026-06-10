@@ -4,6 +4,7 @@
 > with programming experience from refreshed mathematical foundations to a
 > small, correct, leakage-aware quantitative research workflow.
 
+[![CI](https://github.com/tingwei-chuang/quant-finance-foundations/actions/workflows/ci.yml/badge.svg)](https://github.com/tingwei-chuang/quant-finance-foundations/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
 

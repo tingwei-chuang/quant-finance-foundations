@@ -60,20 +60,41 @@ def assert_no_lookahead(
     Raises:
         ValueError: If the feature looks like it leaks the target.
     """
-    aligned = pd.concat([feature, target], axis=1, join="inner").dropna()
-    if aligned.shape[0] < 3:
+    # Build (feature_t, target_t, target_{t+1}) aligned rows.
+    frame = pd.concat(
+        [
+            feature.rename("feature"),
+            target.rename("target_t"),
+            target.shift(-1).rename("target_t1"),
+        ],
+        axis=1,
+        join="inner",
+    ).dropna()
+    if frame.shape[0] < 3:
         return
-    f = aligned.iloc[:, 0].to_numpy()
-    t = aligned.iloc[:, 1].to_numpy()
-    if np.std(f) == 0 or np.std(t) == 0:
+    f = frame["feature"].to_numpy()
+    t0 = frame["target_t"].to_numpy()
+    t1 = frame["target_t1"].to_numpy()
+    if np.std(f) == 0:
         return
-    contemporaneous = abs(float(np.corrcoef(f, t)[0, 1]))
-    if contemporaneous > 0.999:
+
+    threshold = 0.999
+
+    def _flag(corr: float, label: str) -> None:
         raise ValueError(
             f"possible leakage: {name!r} is almost perfectly correlated with "
-            f"the contemporaneous target (|corr| = {contemporaneous:.4f}). "
-            "A real feature must be built from past data only."
+            f"the {label} target (|corr| = {corr:.4f}). A real feature must "
+            "be built from past data only."
         )
+
+    if np.std(t0) > 0:
+        c0 = abs(float(np.corrcoef(f, t0)[0, 1]))
+        if c0 > threshold:
+            _flag(c0, "contemporaneous")
+    if np.std(t1) > 0:
+        c1 = abs(float(np.corrcoef(f, t1)[0, 1]))
+        if c1 > threshold:
+            _flag(c1, "next-period (future)")
 
 
 def strategy_returns(positions: pd.Series, asset_returns: pd.Series) -> pd.Series:

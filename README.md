@@ -3,7 +3,7 @@
 > 一套**自學取向、可重現、嚴謹**的八週路線圖，協助具備程式設計經驗的學習者，
 > 從複習數學基礎，前進到一個小而正確、防 leakage 的量化研究流程。
 
-[![CI](https://github.com/quant-math-roadmap/quant-math-roadmap/actions/workflows/ci.yml/badge.svg)](https://github.com/quant-math-roadmap/quant-math-roadmap/actions/workflows/ci.yml)
+[![CI](https://github.com/tingwei-chuang/quant-finance-foundations/actions/workflows/ci.yml/badge.svg)](https://github.com/tingwei-chuang/quant-finance-foundations/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/)
 
@@ -152,6 +152,14 @@ uv run pytest            # 測試
 
 - 本專案採用 **MIT License**（見 [`LICENSE`](LICENSE)）。
 - 引用本專案請見 [`CITATION.cff`](CITATION.cff)。
+
+## 11. 命名說明
+
+- **倉庫名稱（GitHub repo）**：`quant-finance-foundations`
+- **Python 套件名稱**：`quant-math-roadmap`（`pip install` 後 `import quant_math_roadmap`）
+
+兩個名字代表的是同一個專案。倉庫先以一般名稱建立，套件名則對應本路線圖的
+教學定位；以後若統一可能會合併。
 
 ---
 

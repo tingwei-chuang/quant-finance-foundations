@@ -232,7 +232,14 @@ def ols_fit(
     adj_r_squared = 1.0 - (1.0 - r_squared) * (n - 1) / (n - k) if n > k else float("nan")
 
     sigma2 = ss_res / (n - k)
-    cov_beta = sigma2 * np.linalg.inv(design.T @ design)
+    try:
+        cov_beta = sigma2 * np.linalg.inv(design.T @ design)
+    except np.linalg.LinAlgError as exc:
+        raise ValueError(
+            "design matrix is singular (likely perfectly collinear features); "
+            "OLS standard errors are undefined. Drop the redundant column or "
+            "add a tiny ridge."
+        ) from exc
     std_errors = np.sqrt(np.diag(cov_beta))
     with np.errstate(divide="ignore", invalid="ignore"):
         t_values = np.where(std_errors > 0, beta / std_errors, 0.0)

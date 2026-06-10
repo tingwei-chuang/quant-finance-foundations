@@ -1,99 +1,92 @@
-"""Execute every course notebook top-to-bottom to validate it.
+"""Validate every course notebook by executing it top-to-bottom.
 
-This is a lightweight, network-free notebook check: each notebook is run with
-``nbclient`` and any execution error fails the script. It is the same kind of
-validation the CI workflow performs (CI uses ``pytest --nbmake``).
+This script is a thin, friendly wrapper around the **same** ``pytest --nbmake``
+invocation that CI uses, so local runs and CI cannot drift apart. (Previously
+this script and CI used two different mechanisms — see the engineering
+roadmap, item P2-7.)
 
 Usage::
 
     uv run python scripts/run_all_notebooks.py
     uv run python scripts/run_all_notebooks.py --include-solutions
+    uv run python scripts/run_all_notebooks.py --jobs auto --fail-fast
 """
 
 from __future__ import annotations
 
 import argparse
+import shutil
+import subprocess
 import sys
-import time
 from pathlib import Path
-
-import nbformat
-from nbclient import NotebookClient
-from nbclient.exceptions import CellExecutionError
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 NOTEBOOK_DIR = REPO_ROOT / "notebooks"
 
 
-def run_notebook(path: Path, timeout: int) -> tuple[bool, str]:
-    """Execute a single notebook and report success.
-
-    Args:
-        path: Path to the ``.ipynb`` file.
-        timeout: Per-cell execution timeout in seconds.
-
-    Returns:
-        A ``(success, message)`` tuple.
-    """
-    notebook = nbformat.read(path, as_version=4)
-    client = NotebookClient(
-        notebook,
-        timeout=timeout,
-        kernel_name="python3",
-        resources={"metadata": {"path": str(path.parent)}},
-    )
-    start = time.perf_counter()
-    try:
-        client.execute()
-    except CellExecutionError as exc:
-        return False, f"cell execution error: {exc}"
-    except Exception as exc:  # noqa: BLE001 - surface any failure to the caller
-        return False, f"unexpected error: {exc}"
-    elapsed = time.perf_counter() - start
-    return True, f"ok ({elapsed:.1f}s)"
-
-
 def main() -> int:
-    """Run all notebooks and return a process exit code."""
-    parser = argparse.ArgumentParser(description=__doc__)
+    """Run nbmake on the course notebooks and return its exit code."""
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "--include-solutions",
         action="store_true",
-        help="also execute notebooks under notebooks/solutions/",
+        help="also execute notebooks under notebooks/solutions/ (default: no, "
+        "since pytest collects them recursively from notebooks/ anyway -- this "
+        "flag is kept for backward compatibility)",
     )
     parser.add_argument(
         "--timeout",
         type=int,
         default=600,
-        help="per-cell timeout in seconds (default: 600)",
+        help="per-cell timeout in seconds (default: 600, matches CI)",
+    )
+    parser.add_argument(
+        "--jobs",
+        default="0",
+        help="pytest-xdist worker count (e.g. 4 or 'auto'); 0 = serial",
+    )
+    parser.add_argument(
+        "--fail-fast",
+        action="store_true",
+        help="stop at the first failing notebook (pytest --maxfail=1)",
+    )
+    parser.add_argument(
+        "extra",
+        nargs=argparse.REMAINDER,
+        help="extra arguments are passed through to pytest after --",
     )
     args = parser.parse_args()
 
-    notebooks = sorted(NOTEBOOK_DIR.glob("*.ipynb"))
-    if args.include_solutions:
-        notebooks += sorted((NOTEBOOK_DIR / "solutions").glob("*.ipynb"))
+    if shutil.which("uv") is None and not (REPO_ROOT / ".venv").exists():
+        print("warning: no .venv detected; try `uv sync --extra dev` first.")
 
-    if not notebooks:
-        print("No notebooks found.")
-        return 1
+    # Pytest recursion already picks up notebooks/solutions/ -- listing both
+    # would only matter if the directories were not nested.
+    target = NOTEBOOK_DIR if not args.include_solutions else NOTEBOOK_DIR
+    cmd = [
+        sys.executable,
+        "-m",
+        "pytest",
+        "--nbmake",
+        str(target),
+        f"--nbmake-timeout={args.timeout}",
+        "-q",
+    ]
+    if args.fail_fast:
+        cmd.append("--maxfail=1")
+    if args.jobs != "0":
+        # Requires pytest-xdist; pip-install it locally if you want parallelism.
+        cmd += ["-n", args.jobs]
+    if args.extra:
+        # Drop a leading "--" if argparse left one in.
+        extras = args.extra[1:] if args.extra and args.extra[0] == "--" else args.extra
+        cmd += extras
 
-    failures: list[str] = []
-    for path in notebooks:
-        rel = path.relative_to(REPO_ROOT)
-        print(f"Running {rel} ... ", end="", flush=True)
-        success, message = run_notebook(path, args.timeout)
-        print(message)
-        if not success:
-            failures.append(str(rel))
-
-    print()
-    if failures:
-        print(f"FAILED ({len(failures)}/{len(notebooks)}):")
-        for name in failures:
-            print(f"  - {name}")
-        return 1
-    print(f"All {len(notebooks)} notebook(s) executed successfully.")
-    return 0
+    print("$", " ".join(cmd))
+    return subprocess.call(cmd, cwd=REPO_ROOT)
 
 
 if __name__ == "__main__":

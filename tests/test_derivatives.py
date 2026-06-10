@@ -79,7 +79,11 @@ def test_binomial_satisfies_put_call_parity() -> None:
         spot, strike, rate, vol, maturity, n_steps=500, option_type="put"
     )
     gap = put_call_parity_gap(call, put, spot, strike, rate, maturity)
-    assert gap == pytest.approx(0.0, abs=1e-2)
+    # P1-5: parity holds to ~machine precision in a CRR tree (the binomial
+    # operator is linear, so C-P inherits the linear payoff exactly). The old
+    # `abs=1e-2` tolerance was 8 orders of magnitude looser than necessary
+    # and would have let a 1-cent parity violation pass silently.
+    assert gap == pytest.approx(0.0, abs=1e-8)
 
 
 def test_binomial_rejects_invalid_inputs() -> None:

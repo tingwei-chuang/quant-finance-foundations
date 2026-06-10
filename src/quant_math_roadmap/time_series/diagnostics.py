@@ -30,6 +30,11 @@ def autocorrelation(series: pd.Series, lag: int) -> float:
     if lag < 0:
         raise ValueError("lag must be non-negative")
     x = np.asarray(series, dtype=float).ravel()
+    if np.isnan(x).any():
+        raise ValueError(
+            "series contains NaN; drop missing values before computing "
+            "autocorrelation (e.g. series.dropna())"
+        )
     n = x.size
     if lag >= n:
         raise ValueError("lag must be smaller than the series length")

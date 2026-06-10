@@ -60,25 +60,13 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=GUIDANCE,
     )
-    parser.add_argument(
-        "--acknowledge-terms",
-        action="store_true",
-        help="confirm you have reviewed and accept your data provider's terms",
-    )
-    args = parser.parse_args()
+    parser.parse_args()  # no positional args; help/epilog do the work
 
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     print(GUIDANCE)
-
-    if not args.acknowledge_terms:
-        print(
-            "No data was downloaded. This script only prints guidance unless you "
-            "implement a provider-specific download and pass --acknowledge-terms."
-        )
-        return 0
-
     print(
-        f"Acknowledged. Place any downloaded CSV files into: {RAW_DIR}\n"
+        f"\nReady. If you implement a provider-specific download, write the "
+        f"CSV files into:\n  {RAW_DIR}\n"
         "Reminder: data/raw/ is git-ignored on purpose. Do not commit market data."
     )
     return 0

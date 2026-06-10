@@ -31,7 +31,17 @@ def discount_factor(rate: float, time: float, *, periods_per_year: int = 1) -> f
         raise ValueError("periods_per_year must be >= 1")
     if time < 0:
         raise ValueError("time must be non-negative")
-    return float((1.0 + rate / periods_per_year) ** (-periods_per_year * time))
+    # Per-period gross factor must stay positive. Negative annual rates are
+    # legitimate (and give discount factors > 1), but rates so negative that
+    # 1 + r/m <= 0 are nonsensical here and silently produce wrong values
+    # (even powers) or complex numbers (odd powers).
+    per_period = 1.0 + rate / periods_per_year
+    if per_period <= 0.0:
+        raise ValueError(
+            f"rate {rate!r} with periods_per_year={periods_per_year} gives a "
+            "non-positive per-period gross factor; discounting is undefined"
+        )
+    return float(per_period ** (-periods_per_year * time))
 
 
 def present_value(

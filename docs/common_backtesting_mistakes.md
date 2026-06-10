@@ -176,7 +176,7 @@
 刻意提供兩個獨立函式:`buy_and_hold_equity` 只在期初配置一次、權重自由漂移、
 零週轉;`equal_weight_rebalanced_equity` 則每期把投組重設回等權,是會產生
 週轉與成本拖累的主動策略。`baseline_turnover_comparison` 直接並列兩者的
-總週轉率,讓差異一目了然。測試見 `tests/test_portfolio.py`。
+總週轉率,讓差異一目了然。測試見 `tests/test_backtesting_costs.py`。
 
 ---
 
