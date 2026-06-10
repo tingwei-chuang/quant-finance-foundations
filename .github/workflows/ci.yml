@@ -129,12 +129,16 @@ jobs:
         with:
           python-version: "3.12"
           enable-cache: true
-      - name: Install
-        run: uv sync --extra dev
+      - name: Install dependencies only
+        # --no-install-project: the local package itself is not on PyPI, so
+        # `pip-audit --strict` would fail with "Dependency not found on PyPI"
+        # if it were present in the environment. Only third-party
+        # dependencies are auditable (and are what matters here).
+        run: uv sync --extra dev --no-install-project
       - name: pip-audit (dependency vulnerability scan)
         # Strict on pushes to main and on the weekly schedule so maintainers
         # get a hard signal when a dependency CVE lands; soft on pull requests
         # so contributors are not blocked by transitive findings unrelated to
-        # their change.
+        # their change. --no-sync stops uv run from re-installing the project.
         continue-on-error: ${{ github.event_name == 'pull_request' }}
-        run: uv run --with pip-audit pip-audit --strict
+        run: uv run --no-sync --with pip-audit pip-audit --strict
