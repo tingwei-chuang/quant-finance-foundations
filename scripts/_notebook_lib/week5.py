@@ -15,6 +15,7 @@ from .parts import (
     footer_references,
     header,
     mistakes,
+    quiz_cells,
 )
 
 
@@ -138,6 +139,33 @@ def week(solution: bool) -> list[nbf.NotebookNode]:
             "即使真實 beta 固定，rolling 估計仍會在其周圍震盪——這就是估計的"
             "抽樣不確定性。真實資料的 beta 還會**真的隨時間改變**。"
         ),
+        md(
+            "### Heteroskedasticity 與穩健標準誤（HC0 / HC1）\n\n"
+            "金融資料常見**異質變異**：誤差的變異數不是常數（例如隨市場波動放大）。"
+            "此時 OLS 的**係數估計仍然不偏**，但古典標準誤失準——顯著性檢定會被誤導。"
+            "White (1980) 的 **sandwich 估計**只用「實際殘差的平方」重新估計係數的"
+            "共變異數，不需要假設誤差結構：\n\n"
+            "$$ \\widehat{\\mathrm{Var}}(\\hat\\beta)_{HC0} = (X^\\top X)^{-1}"
+            " X^\\top \\mathrm{diag}(e_i^2)\\, X (X^\\top X)^{-1} $$\n\n"
+            "下面刻意製造一組誤差變異隨 $|x|$ 放大的資料，比較古典與穩健標準誤。"
+        ),
+        code(
+            "# 誤差標準差 = 0.5 + |x| -> 教科書級的 heteroskedasticity\n"
+            "x_het = rng.standard_normal(800)\n"
+            "y_het = 1.0 + 2.0 * x_het + rng.standard_normal(800) * (0.5 + np.abs(x_het))\n"
+            "\n"
+            "classic = ols_fit(x_het, y_het, feature_names=['x'])\n"
+            "robust = ols_fit(x_het, y_het, feature_names=['x'], robust='HC1')\n"
+            "print('係數完全相同:', np.allclose(classic.params, robust.params))\n"
+            "print(f'斜率的古典標準誤   = {classic.std_errors[1]:.4f}')\n"
+            "print(f'斜率的 HC1 穩健標準誤 = {robust.std_errors[1]:.4f}')\n"
+            "print('異質變異下，古典標準誤明顯低估不確定性 -> t 統計量被高估。')"
+        ),
+        md(
+            "**結論**：報告金融迴歸時，預設使用穩健標準誤是良好習慣。注意它只"
+            "修推論（標準誤、t、p-value），不改變係數本身——模型的解釋力沒有變，"
+            "變的是你對顯著性的信心。"
+        ),
         md("### 殘差檢視與 omitted variable bias"),
         code(
             "fig, ax = plt.subplots(figsize=(9, 4))\n"
@@ -211,6 +239,36 @@ def week(solution: bool) -> list[nbf.NotebookNode]:
             "### 反思問題\n\n"
             "1. 假設你用迴歸發現某因子對下一期報酬「顯著」。在把它變成回測訊號之前，"
             "Week 4（多重檢定）與 Week 8（leakage）各提醒你要注意什麼？"
+        ),
+        *quiz_cells(
+            solution,
+            week=5,
+            items=[
+                (
+                    "OLS 的矩陣解 β̂ 是？",
+                    ["(XᵀX)⁻¹Xᵀy", "Xᵀy", "X⁻¹y", "(XXᵀ)⁻¹yX"],
+                    "A",
+                    "由 normal equations XᵀXβ = Xᵀy 解出——Week 5 的核心公式。",
+                ),
+                (
+                    "R² 衡量的是？",
+                    ["策略可獲利程度", "模型解釋的應變數變異比例", "係數的大小", "殘差的總和"],
+                    "B",
+                    "R² = 1 − SS_res/SS_tot；高 R² 不代表能獲利，也不代表因果。",
+                ),
+                (
+                    "heteroskedasticity（異質變異）主要影響 OLS 的？",
+                    ["係數估計值", "標準誤（以及 t 統計量）", "R²", "截距"],
+                    "B",
+                    "OLS 係數仍不偏，但古典標準誤失準——推論（顯著性）會被誤導。",
+                ),
+                (
+                    "HC0/HC1 穩健標準誤改變的是？",
+                    ["迴歸係數", "標準誤", "殘差", "R²"],
+                    "B",
+                    "sandwich 估計只修正係數共變異數矩陣的估計；點估計完全不變。",
+                ),
+            ],
         ),
         mistakes(
             [

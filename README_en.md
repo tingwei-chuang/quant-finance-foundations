@@ -73,8 +73,11 @@ uv run jupyter lab                                     # open the notebooks
 
 - `docs/` — roadmap, study guide, resource guide, math/finance concept notes,
   and the open-source/data policy.
-- `notebooks/` — the Week 0–8 lessons; `notebooks/solutions/` holds full
-  reference answers.
+- `notebooks/` — the Week 0–8 lessons in Traditional Chinese;
+  `notebooks/solutions/` holds full reference answers.
+- `notebooks/en/` — the **complete English edition** of all nine lessons
+  (with `en/solutions/`), generated from the same source so the two tracks
+  never drift apart. Every notebook ends with an auto-graded quiz.
 - `src/quant_math_roadmap/` — the reusable, tested Python package the notebooks
   import (`data`, `math`, `finance`, `time_series`, `backtesting`).
 - `scripts/` — synthetic-data generation and notebook validation.

@@ -7,6 +7,12 @@ builders live in :mod:`scripts._notebook_lib`. The split exists so that:
 * ``--only WEEK`` can target just one notebook;
 * embedded notebook code lives next to the prose that explains it.
 
+Two locales are generated from the same structure:
+
+* Traditional Chinese (the primary track) into ``notebooks/`` and
+  ``notebooks/solutions/``;
+* English into ``notebooks/en/`` and ``notebooks/en/solutions/``.
+
 Run with ``uv run python scripts/build_notebooks.py``. The generated
 ``.ipynb`` files are the artefacts learners actually open and edit.
 
@@ -33,25 +39,41 @@ import nbformat as nbf
 # package layout already works.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _notebook_lib import NOTEBOOKS, build, md  # noqa: E402
+from _notebook_lib import NOTEBOOKS, NOTEBOOKS_EN, build, md  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 NB_DIR = REPO_ROOT / "notebooks"
-SOL_DIR = NB_DIR / "solutions"
+
+WeekBuilder = Callable[[bool], list[nbf.NotebookNode]]
+
+SOLUTION_BANNERS = {
+    "zh": (
+        "> 這是對應主 notebook 的**完整參考解答版**。建議先自己完成主"
+        "notebook 的練習，再對照本檔。所有解說與解答皆為本專案原創。"
+    ),
+    "en": (
+        "> This is the **full reference-solution edition** of the matching "
+        "main notebook. Try the exercises yourself first, then compare. All "
+        "explanations and answers are original to this project."
+    ),
+}
+
+SOLUTION_TITLES = {"zh": "（參考解答）", "en": "(Reference solutions) "}
+
+# (locale, dispatch table, main output dir, solutions output dir)
+TRACKS: list[tuple[str, dict[str, WeekBuilder], Path, Path]] = [
+    ("zh", NOTEBOOKS, NB_DIR, NB_DIR / "solutions"),
+    ("en", NOTEBOOKS_EN, NB_DIR / "en", NB_DIR / "en" / "solutions"),
+]
 
 
 def _render_pair(
-    stem: str,
-    builder: Callable[[bool], list[nbf.NotebookNode]],
+    stem: str, builder: WeekBuilder, locale: str
 ) -> tuple[nbf.NotebookNode, nbf.NotebookNode]:
     """Build the (main, solution) notebook node pair for one week."""
     main_nb = build(builder(False))
     sol_cells = [
-        md(
-            f"# （參考解答）{stem}\n\n"
-            "> 這是對應主 notebook 的**完整參考解答版**。建議先自己完成主"
-            "notebook 的練習，再對照本檔。所有解說與解答皆為本專案原創。"
-        ),
+        md(f"# {SOLUTION_TITLES[locale]}{stem}\n\n{SOLUTION_BANNERS[locale]}"),
         *builder(True),
     ]
     sol_nb = build(sol_cells)
@@ -66,7 +88,7 @@ def _normalise(nb: nbf.NotebookNode) -> str:
 
 
 def main() -> int:
-    """Generate (or check) all main and solution notebooks."""
+    """Generate (or check) all main and solution notebooks in both locales."""
     parser = argparse.ArgumentParser(
         description="Build (or check) the Week 0-8 notebooks and their solutions.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -75,7 +97,7 @@ def main() -> int:
         "--only",
         metavar="WEEK",
         help="rebuild only the notebook(s) whose stem starts with WEEK "
-        "(e.g. --only 03 rebuilds the Week 3 main + solution notebook).",
+        "(e.g. --only 03 rebuilds the Week 3 pair in both locales).",
     )
     parser.add_argument(
         "--check",
@@ -87,9 +109,10 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    selected: list[tuple[str, Callable[[bool], list[nbf.NotebookNode]]]] = [
-        (stem, builder)
-        for stem, builder in NOTEBOOKS.items()
+    selected: list[tuple[str, WeekBuilder, str, Path, Path]] = [
+        (stem, builder, locale, main_dir, sol_dir)
+        for locale, table, main_dir, sol_dir in TRACKS
+        for stem, builder in table.items()
         if args.only is None or stem.startswith(args.only)
     ]
     if not selected:
@@ -98,10 +121,10 @@ def main() -> int:
 
     if args.check:
         drifted: list[str] = []
-        for stem, builder in selected:
-            main_nb, sol_nb = _render_pair(stem, builder)
-            main_path = NB_DIR / f"{stem}.ipynb"
-            sol_path = SOL_DIR / f"{stem}_solution.ipynb"
+        for stem, builder, locale, main_dir, sol_dir in selected:
+            main_nb, sol_nb = _render_pair(stem, builder, locale)
+            main_path = main_dir / f"{stem}.ipynb"
+            sol_path = sol_dir / f"{stem}_solution.ipynb"
             for path, fresh in ((main_path, main_nb), (sol_path, sol_nb)):
                 if not path.exists():
                     drifted.append(f"{path.relative_to(REPO_ROOT)}: missing")
@@ -120,14 +143,14 @@ def main() -> int:
         print(f"OK: {len(selected)} notebook pair(s) match the generator.")
         return 0
 
-    NB_DIR.mkdir(parents=True, exist_ok=True)
-    SOL_DIR.mkdir(parents=True, exist_ok=True)
-    for stem, builder in selected:
-        main_nb, sol_nb = _render_pair(stem, builder)
-        nbf.write(main_nb, NB_DIR / f"{stem}.ipynb")
-        nbf.write(sol_nb, SOL_DIR / f"{stem}_solution.ipynb")
-        print(f"generated {stem}.ipynb  (+ solution)")
-    print(f"\nDone: {len(selected)} main + {len(selected)} solution notebooks.")
+    for stem, builder, locale, main_dir, sol_dir in selected:
+        main_dir.mkdir(parents=True, exist_ok=True)
+        sol_dir.mkdir(parents=True, exist_ok=True)
+        main_nb, sol_nb = _render_pair(stem, builder, locale)
+        nbf.write(main_nb, main_dir / f"{stem}.ipynb")
+        nbf.write(sol_nb, sol_dir / f"{stem}_solution.ipynb")
+        print(f"generated [{locale}] {stem}.ipynb  (+ solution)")
+    print(f"\nDone: {len(selected)} notebook pair(s) across {len(TRACKS)} locale(s).")
     return 0
 
 

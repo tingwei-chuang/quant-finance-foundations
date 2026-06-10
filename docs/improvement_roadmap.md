@@ -24,7 +24,22 @@
 >   (5) `language_info` 不再釘版本，Jupyter 重存不再造成雜訊 diff；
 >   (6) pip-audit 在 push/schedule 嚴格，僅在 PR 軟性回報；
 >   (7) Python 3.13 已在本機完整驗證（ruff、mypy、168 tests、`--check`）。
-> - P4 feature backlog 仍未動工，按需取捨。
+> - **第三輪（P4 feature backlog，2026-06-10）**：18 項全部完成——
+>   數值/統計：HC0/HC1 robust standard errors、circular block bootstrap、
+>   PSR / expected-max-Sharpe / Deflated Sharpe Ratio、Ledoit–Wolf shrinkage、
+>   bond duration（Macaulay/modified）與 convexity、American binomial pricer +
+>   有限差分 Greeks、Sortino / Calmar ratio；
+>   回測方法論：purged（gap）walk-forward splits、多資產 `run_portfolio_backtest`
+>   引擎、`lookback_parameter_sweep` 過擬合示範；
+>   教學：Hypothesis property-based tests、每週 4 題自動對答案 quiz、
+>   完整英文版 notebooks（`notebooks/en/`，與中文版同源生成）；
+>   基礎設施與 HTML：lychee 離線 link-check CI job、
+>   `generate_synthetic_dataset.py --verify` 可重現性 gate、coverage 工件 +
+>   job summary + Codecov 上傳（best-effort）、排程器當週 highlight、
+>   `.ics` 行事曆匯出（RFC 5545 折行/跳脫已以 Node 驗證）。
+>   對應的 notebook 章節：W2 Ledoit–Wolf、W4 block bootstrap + PSR/DSR、
+>   W5 robust SE、W6 duration/convexity + American + Greeks、
+>   W8 purged splits + 多資產 + 參數掃描。
 
 ---
 

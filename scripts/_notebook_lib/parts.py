@@ -2,14 +2,119 @@
 
 Each helper returns one or more ``NotebookNode`` cells in the standard layout
 described in the roadmap: header, style setup, body (per-week), exercises,
-mistakes, checklist, references.
+mistakes, checklist, quiz, references.
 """
 
 from __future__ import annotations
 
+import hashlib
+
 import nbformat as nbf
 
 from .cells import code, md
+
+QuizItem = tuple[str, list[str], str, str]
+"""One quiz entry: ``(question, options, correct_letter, explanation)``."""
+
+
+def _answer_hash(week: int, number: int, letter: str) -> str:
+    """Salted, truncated hash of a quiz answer (so answers aren't plaintext)."""
+    return hashlib.sha256(f"qmr-w{week}-q{number}-{letter}".encode()).hexdigest()[:16]
+
+
+def quiz_cells(
+    solution: bool,
+    *,
+    week: int,
+    items: list[QuizItem],
+    lang: str = "zh",
+) -> list[nbf.NotebookNode]:
+    """Build the self-test quiz section: questions, answer cell, checker.
+
+    The main notebook ships an answer dict full of ``None`` (every cell still
+    runs end-to-end); the solution notebook ships the filled answers plus an
+    explanation cell. Correct answers are stored as salted hashes so a learner
+    can't trivially read them out of the checker source.
+
+    Args:
+        solution: ``True`` to emit the filled-in solution variant.
+        week: Week number (used in headings and the hash salt).
+        items: Quiz entries ``(question, options, correct_letter, explanation)``.
+        lang: ``"zh"`` or ``"en"`` interface strings.
+
+    Returns:
+        Two or three notebook cells (markdown, code, and for solutions an
+        explanation markdown cell).
+    """
+    zh = lang == "zh"
+    letters = "ABCD"
+
+    lines = [
+        "## 小測驗（自我檢核）" if zh else "## Quiz (self-check)",
+        (
+            "回答下面的選擇題，然後執行下一格自動對答案。答案以雜湊儲存，不會直接洩漏。"
+            if zh
+            else "Answer the multiple-choice questions, then run the next cell to "
+            "check yourself. Answers are stored as hashes, not plaintext."
+        ),
+        "",
+    ]
+    for i, (question, options, _correct, _expl) in enumerate(items, start=1):
+        lines.append(f"**Q{i}. {question}**")
+        lines.extend(f"- {letters[j]}. {opt}" for j, opt in enumerate(options))
+        lines.append("")
+    quiz_md = md("\n".join(lines))
+
+    if solution:
+        answers_src = ", ".join(
+            f"{i}: '{correct}'" for i, (_q, _o, correct, _e) in enumerate(items, start=1)
+        )
+        todo_comment = ""
+    else:
+        answers_src = ", ".join(f"{i}: None" for i in range(1, len(items) + 1))
+        todo_comment = (
+            "  # TODO: 填入 'A' / 'B' / 'C' / 'D'"
+            if zh
+            else "  # TODO: fill in 'A' / 'B' / 'C' / 'D'"
+        )
+    expected_src = ", ".join(
+        f"{i}: '{_answer_hash(week, i, correct)}'"
+        for i, (_q, _o, correct, _e) in enumerate(items, start=1)
+    )
+    msg_unanswered = "未作答" if zh else "unanswered"
+    msg_right = "✔ 正確" if zh else "✔ correct"
+    msg_wrong = "✘ 不正確" if zh else "✘ incorrect"
+    msg_score = "得分" if zh else "Score"
+
+    checker = (
+        f"my_answers = {{{answers_src}}}{todo_comment}\n"
+        "\n"
+        "import hashlib as _hashlib\n"
+        f"_expected = {{{expected_src}}}\n"
+        "_n_correct = 0\n"
+        "for _q, _ans in my_answers.items():\n"
+        "    if _ans is None:\n"
+        f"        print(f'Q{{_q}}: {msg_unanswered}')\n"
+        "        continue\n"
+        f"    _h = _hashlib.sha256(f'qmr-w{week}-q{{_q}}-{{str(_ans).strip().upper()}}'"
+        ".encode()).hexdigest()[:16]\n"
+        "    _ok = _h == _expected[_q]\n"
+        "    _n_correct += int(_ok)\n"
+        f"    print(f'Q{{_q}}: ' + ('{msg_right}' if _ok else '{msg_wrong}'))\n"
+        f"print(f'{msg_score}: {{_n_correct}} / {{len(my_answers)}}')"
+    )
+    cells = [quiz_md, code(checker)]
+
+    if solution:
+        expl_lines = ["### 解析" if zh else "### Explanations", ""]
+        for i, (_q, _o, correct, explanation) in enumerate(items, start=1):
+            expl_lines.append(
+                f"- **Q{i} → {correct}**：{explanation}"
+                if zh
+                else f"- **Q{i} → {correct}**: {explanation}"
+            )
+        cells.append(md("\n".join(expl_lines)))
+    return cells
 
 
 def docs_prefix(solution: bool) -> str:

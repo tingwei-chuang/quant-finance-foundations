@@ -287,6 +287,9 @@
       font-size: .82rem; letter-spacing: .03em; text-transform: uppercase;
     }
     table.schedule td.dates { color: var(--fg-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    table.schedule tr.current-week td,
+    table.schedule tr.current-week th { background: var(--accent-soft); }
+    table.schedule tr.current-week td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
 
     /* ---------- progress tracker ---------- */
     .tracker {
@@ -659,6 +662,12 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
               <option value="14">14 小時 / 週</option>
             </select>
           </div>
+          <div>
+            <button class="btn btn-ghost" id="ics-export" type="button"
+                    title="把九個週次的日期區間匯出成 .ics，匯入任何行事曆 App">
+              匯出行事曆 (.ics)
+            </button>
+          </div>
         </div>
         <div style="overflow-x:auto">
           <table class="schedule" id="schedule-table">
@@ -932,16 +941,23 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
     return td;
   }
 
+  // Rows of the most recent render, reused by the .ics exporter.
+  let lastSchedule = [];
+
   function renderSchedule() {
     const startStr = startInput.value || todayLocal();
     const base = parseLocal(startStr);
-    const stride = parseInt(paceInput.value, 10);
-    const wkly = parseInt(hoursInput.value, 10);
+    // `|| default` guards against an empty/invalid select value ever
+    // reaching the date arithmetic (which would propagate NaN into the .ics).
+    const stride = parseInt(paceInput.value, 10) || 7;
+    const wkly = parseInt(hoursInput.value, 10) || 10;
     // Week 0 length scales with the chosen pace too (was hard-coded to 3
     // days, which made no sense at a 5- or 14-day pace).
     const week0Stride = Math.max(2, Math.round(stride * 0.4));
+    const today = todayLocal();
 
     while (schedBody.firstChild) schedBody.removeChild(schedBody.firstChild);
+    lastSchedule = [];
 
     let cursor = new Date(base);
     weeks.forEach(function (w, i) {
@@ -950,6 +966,15 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
       end.setDate(end.getDate() + len - 1);
       const allocated = Math.round((wkly * len / 7) * 10) / 10;
       const tr = document.createElement("tr");
+      // Highlight the week that contains today (ISO strings compare
+      // lexicographically, so plain string comparison is safe here).
+      const startISO = fmtLocal(cursor);
+      const endISO = fmtLocal(end);
+      lastSchedule.push({ n: w.n, title: w.title, start: startISO, end: endISO });
+      if (startISO <= today && today <= endISO) {
+        tr.classList.add("current-week");
+        tr.title = "今天落在這一週";
+      }
       const c1 = document.createElement("td");
       const strong = document.createElement("strong");
       strong.textContent = "W" + w.n;
@@ -994,6 +1019,74 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
   paceInput.addEventListener("change", handleChange);
   hoursInput.addEventListener("change", handleChange);
   renderSchedule();
+
+  // ---------- .ics calendar export ----------
+  // RFC 5545: CRLF line endings, all-day events with non-inclusive DTEND,
+  // text escaping for , ; \ and newline, and 75-octet line folding that
+  // never splits a multi-byte UTF-8 character.
+  const icsEncoder = new TextEncoder();
+  function icsEscape(text) {
+    return String(text)
+      .replace(/\\/g, "\\\\")
+      .replace(/;/g, "\\;")
+      .replace(/,/g, "\\,")
+      .replace(/\r?\n/g, "\\n");
+  }
+  function icsFold(line) {
+    const out = [];
+    let current = "";
+    for (const ch of line) {
+      const candidate = current + ch;
+      // Continuation lines start with a space, leaving 74 octets of payload.
+      if (icsEncoder.encode(candidate).length > 73) {
+        out.push(current);
+        current = " " + ch;
+      } else {
+        current = candidate;
+      }
+    }
+    out.push(current);
+    return out.join("\r\n");
+  }
+  function icsDate(iso) { return iso.replace(/-/g, ""); }
+  function nextDayISO(iso) {
+    const d = parseLocal(iso);
+    d.setDate(d.getDate() + 1);
+    return fmtLocal(d);
+  }
+  function buildICS(rows) {
+    const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//quant-math-roadmap//schedule//ZH-TW",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+    ];
+    rows.forEach(function (row) {
+      lines.push("BEGIN:VEVENT");
+      lines.push("UID:qmr-w" + row.n + "-" + icsDate(row.start) + "@quant-math-roadmap");
+      lines.push("DTSTAMP:" + stamp);
+      lines.push("DTSTART;VALUE=DATE:" + icsDate(row.start));
+      lines.push("DTEND;VALUE=DATE:" + icsDate(nextDayISO(row.end)));
+      lines.push(icsFold("SUMMARY:" + icsEscape("W" + row.n + " " + row.title + "（quant-math-roadmap）")));
+      lines.push(icsFold("DESCRIPTION:" + icsEscape("八週量化金融數學路線圖：第 " + row.n + " 週。詳見 repo 的 notebooks/ 與 docs/。")));
+      lines.push("END:VEVENT");
+    });
+    lines.push("END:VCALENDAR");
+    return lines.join("\r\n") + "\r\n";
+  }
+  document.getElementById("ics-export").addEventListener("click", function () {
+    const blob = new Blob([buildICS(lastSchedule)], { type: "text/calendar;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "quant-math-roadmap-schedule.ics";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  });
 
   // ---------- progress tracker ----------
   const COLUMNS = ["concepts", "external", "notebook", "exercises", "mistakes", "readiness"];

@@ -110,6 +110,38 @@ def shrinkage_covariance(returns: pd.DataFrame, *, shrinkage: float = 0.2) -> pd
     return (1.0 - shrinkage) * sample + shrinkage * target
 
 
+def ledoit_wolf_covariance(returns: pd.DataFrame) -> tuple[pd.DataFrame, float]:
+    """Estimate a covariance matrix with Ledoit–Wolf optimal shrinkage.
+
+    :func:`shrinkage_covariance` requires the caller to pick the shrinkage
+    intensity by hand. Ledoit & Wolf (2004) derive the intensity that
+    *minimises expected estimation error* directly from the data, shrinking
+    the sample covariance toward a scaled-identity target. It is the standard
+    "sensible default" estimator when the asset count is large relative to
+    the sample length.
+
+    Implementation is delegated to
+    :class:`sklearn.covariance.LedoitWolf`. Note that scikit-learn divides by
+    ``n`` (population covariance) rather than ``n - 1``, so the result is not
+    numerically identical to ``returns.cov()`` even at zero shrinkage — a
+    difference of order ``1/n``.
+
+    Args:
+        returns: A ``DataFrame`` of per-period asset returns.
+
+    Returns:
+        A ``(covariance, shrinkage)`` tuple: the labelled covariance matrix
+        and the data-driven shrinkage intensity in ``[0, 1]``.
+    """
+    from sklearn.covariance import LedoitWolf
+
+    if returns.shape[0] < 2:
+        raise ValueError("need at least two observations")
+    estimator = LedoitWolf().fit(returns.to_numpy())
+    cov = pd.DataFrame(estimator.covariance_, index=returns.columns, columns=returns.columns)
+    return cov, float(estimator.shrinkage_)
+
+
 def buy_and_hold_weights(initial_weights: np.ndarray, asset_returns: pd.DataFrame) -> pd.DataFrame:
     """Track how a one-time allocation's weights *drift* with asset returns.
 
