@@ -1,0 +1,279 @@
+"""Builder for the Week 8 notebook (auto-extracted from build_notebooks.py).
+
+Per-week modules let one week be edited (and merged) independently of the
+others. See scripts/_notebook_lib/__init__.py for the dispatch table.
+"""
+
+from __future__ import annotations
+
+import nbformat as nbf
+
+from .cells import code, ex_code, md
+from .parts import (
+    checklist,
+    docs_prefix,
+    exercises_intro,
+    footer_references,
+    header,
+    mistakes,
+)
+
+
+def week(solution: bool) -> list[nbf.NotebookNode]:
+    cells = header(
+        solution=solution,
+        week="Week 8",
+        title="走動式預測與回測完整性",
+        objectives=[
+            "實作時間式 train/test 切分與走動式評估。",
+            "建立預測模型並與 naive baseline 比較。",
+            "套用交易成本，比較 gross 與 net 績效。",
+            "刻意展示一個 leaked 模型，並說明為何其結果無效。",
+        ],
+        hours="10–12 小時",
+        prereqs=["Week 7 的時間序列", "Week 5 的迴歸"],
+        resources=[
+            ("Forecasting: Principles and Practice, the Pythonic Way", "https://otexts.com/fpppy/"),
+            (
+                "Penn State STAT 510 Applied Time Series Analysis",
+                "https://online.stat.psu.edu/stat510/",
+            ),
+        ],
+    )
+    cells += [
+        md(
+            "## 概念說明\n\n"
+            "本週把前七週整合成一個**正確的**研究流程。核心原則：\n\n"
+            "1. **時間式切分**：訓練集一定在測試集之前。\n"
+            "2. **走動式評估**：expanding（錨定起點、視窗變長）或 rolling"
+            "（固定長度、向前滑動）。\n"
+            "3. **無 leakage**：時間 $t$ 的特徵只能用 $t$ 以前的資訊；"
+            "由訊號決定的部位必須**正確地往後位移**才能對應未來報酬。\n"
+            "4. **交易成本**：比較 gross 與 net；net 才是誠實的結果。\n"
+            "5. **baseline**：贏不過 naive baseline 的模型沒有價值。\n\n"
+            "> 本 notebook 是**方法論訓練**，不是可投資策略。所有結果都不代表"
+            "真實可獲利性。"
+        ),
+        code(
+            "import numpy as np\n"
+            "import pandas as pd\n"
+            "import matplotlib.pyplot as plt\n"
+            "from quant_math_roadmap.data import SyntheticConfig, generate_correlated_prices\n"
+            "from quant_math_roadmap.finance.returns import simple_returns\n"
+            "from quant_math_roadmap.time_series.splits import (\n"
+            "    expanding_window_splits, train_test_split_time,\n"
+            ")\n"
+            "from quant_math_roadmap.time_series.forecasting import (\n"
+            "    fit_linear_lag_model, forecast_error_metrics,\n"
+            "    historical_mean_forecast, zero_forecast,\n"
+            ")\n"
+            "from quant_math_roadmap.backtesting.engine import (\n"
+            "    buy_and_hold_benchmark, information_coefficient, run_backtest,\n"
+            ")\n"
+            "from quant_math_roadmap.backtesting.leakage_checks import (\n"
+            "    assert_no_lookahead, leaked_strategy_returns, signal_to_positions,\n"
+            ")\n"
+            "from quant_math_roadmap.backtesting.costs import cost_summary\n"
+            "\n"
+            "config = SyntheticConfig(n_assets=1, n_periods=900, seed=33)\n"
+            "prices = generate_correlated_prices(config).iloc[:, 0]\n"
+            "returns = simple_returns(prices)\n"
+            "print('報酬序列長度:', len(returns))"
+        ),
+        md("### 時間式 train/test 切分"),
+        code(
+            "split = train_test_split_time(len(returns), test_size=0.3)\n"
+            "train = returns.iloc[split.train_index]\n"
+            "test = returns.iloc[split.test_index]\n"
+            "print(f'訓練集: {len(train)} 期 | 測試集: {len(test)} 期')\n"
+            "print('訓練集最後一天 <', '測試集第一天:',\n"
+            "      train.index[-1] < test.index[0])"
+        ),
+        md("### 預測模型 vs naive baseline"),
+        code(
+            "# 用走動式 expanding window 做誠實的逐期預測\n"
+            "predictions, actuals, baseline_mean, baseline_zero = [], [], [], []\n"
+            "for sp in expanding_window_splits(len(returns), initial_train_size=400,\n"
+            "                                  test_size=1):\n"
+            "    tr = returns.iloc[sp.train_index]\n"
+            "    te = returns.iloc[sp.test_index]\n"
+            "    # 簡單線性 lag 預測：用最近一期報酬乘上訓練集的 lag-1 自相關\n"
+            "    lag1 = tr.autocorr(lag=1)\n"
+            "    pred = lag1 * tr.iloc[-1]\n"
+            "    predictions.append(pred)\n"
+            "    actuals.append(te.iloc[0])\n"
+            "    baseline_mean.append(historical_mean_forecast(tr))\n"
+            "    baseline_zero.append(zero_forecast(tr))\n"
+            "\n"
+            "actual_s = pd.Series(actuals)\n"
+            "print('lag 預測   :', forecast_error_metrics(actual_s, pd.Series(predictions)))\n"
+            "print('歷史均值   :', forecast_error_metrics(actual_s, pd.Series(baseline_mean)))\n"
+            "print('naive 零   :', forecast_error_metrics(actual_s, pd.Series(baseline_zero)))"
+        ),
+        md(
+            "在合成的（近乎白噪音）報酬上，預測模型**通常贏不過** naive baseline。"
+            "這是健康的結果：它誠實反映了「報酬很難預測」。"
+        ),
+        md(
+            "### 用多 lag 線性模型 + 資訊係數（IC）量化預測力\n\n"
+            "上面的 lag-1 預測是手工版。`fit_linear_lag_model` 一次配適"
+            "$y_t = c + \\sum_k b_k\\, x_{t-k}$；`information_coefficient` 則計算"
+            "**訊號** 與**未來報酬**的相關係數——用一個數字告訴你預測是否有方向性。"
+        ),
+        code(
+            "# 在訓練集上配 3 階線性 lag 模型，再對測試集逐期預測\n"
+            "train = returns.iloc[:600]\n"
+            "test = returns.iloc[600:]\n"
+            "lag_model = fit_linear_lag_model(train, n_lags=3)\n"
+            "print('係數 [截距, lag1, lag2, lag3] =', np.round(lag_model.coefficients, 6))\n"
+            "\n"
+            "# 用滑動的最近 3 個歷史報酬產生測試集預測\n"
+            "rolling_lags = pd.concat([returns.shift(k) for k in (1, 2, 3)], axis=1)\n"
+            "rolling_lags = rolling_lags.loc[test.index]\n"
+            "preds = pd.Series(\n"
+            "    [lag_model.predict(row.to_numpy()) for _, row in rolling_lags.iterrows()],\n"
+            "    index=test.index,\n"
+            ")\n"
+            "ic = information_coefficient(preds, test)\n"
+            "print(f'測試集資訊係數 (IC) = {ic:.4f}')\n"
+            "print('|IC| 接近 0 是預期的：合成日報酬本質上接近白噪音。')"
+        ),
+        md("### 把訊號轉成部位（正確位移以避免 leakage）"),
+        code(
+            "# 訊號：昨天報酬的正負號。部位必須往後位移 1 期才能交易。\n"
+            "raw_signal = np.sign(returns)\n"
+            "positions = signal_to_positions(raw_signal, lag=1)\n"
+            "print('前 5 個訊號:', raw_signal.head().to_list())\n"
+            "print('前 5 個部位:', positions.head().to_list())\n"
+            "print('部位是位移後的訊號 — 第一天為 0（沒有可用資訊）。')"
+        ),
+        md("### Gross vs net：交易成本的影響"),
+        code(
+            "result = run_backtest(raw_signal, returns, signal_lag=1,\n"
+            "                      cost_per_unit_turnover=0.0005)\n"
+            "summary = result.summary()\n"
+            "for k, v in summary.items():\n"
+            "    print(f'{k}: {v:.6f}')\n"
+            "\n"
+            "fig, ax = plt.subplots(figsize=(9, 4.5))\n"
+            "ax.plot(result.gross_equity.index, result.gross_equity.values,\n"
+            "        label='gross（未計成本）')\n"
+            "ax.plot(result.net_equity.index, result.net_equity.values,\n"
+            "        label='net（已計成本）')\n"
+            "bnh = buy_and_hold_benchmark(returns)\n"
+            "ax.plot(bnh.index, bnh.values, label='buy-and-hold 基準', linestyle='--')\n"
+            "ax.set_title('回測權益曲線：gross vs net vs 基準')\n"
+            "ax.set_xlabel('日期')\n"
+            "ax.set_ylabel('權益（起始 = 1）')\n"
+            "ax.legend()\n"
+            "plt.show()"
+        ),
+        md("交易成本把 gross 與 net 拉開明顯差距。**只看 gross 的回測是不誠實的。**"),
+        md(
+            "### 刻意展示 data leakage（無效示範）\n\n"
+            "下面這個實驗**故意作弊**：它用「**當期**報酬的正負號」當部位——"
+            "這需要知道未來。它必然每期都賺，績效荒謬地好。\n\n"
+            "> **這個結果絕對不能被當成策略。** 它存在的唯一目的，是讓你認得"
+            "leakage 長什麼樣子。"
+        ),
+        code(
+            "leaked = leaked_strategy_returns(returns)\n"
+            "leaked_equity = (1 + leaked).cumprod()\n"
+            "honest_equity = result.net_equity\n"
+            "\n"
+            "fig, ax = plt.subplots(figsize=(9, 4.5))\n"
+            "ax.plot(leaked_equity.index, leaked_equity.values,\n"
+            "        label='【無效】leaked 模型（偷看未來）')\n"
+            "ax.plot(honest_equity.index, honest_equity.values,\n"
+            "        label='誠實回測（net）')\n"
+            "ax.set_title('Leakage 示範：荒謬的曲線 = 警訊，不是策略')\n"
+            "ax.set_xlabel('日期')\n"
+            "ax.set_ylabel('權益（起始 = 1）')\n"
+            "ax.legend()\n"
+            "plt.show()\n"
+            "print(f'leaked 總報酬 = {(leaked_equity.iloc[-1] - 1):.2%}  <-- 不可能、無效')\n"
+            "print(f'誠實 net 總報酬 = {(honest_equity.iloc[-1] - 1):.2%}')"
+        ),
+        code(
+            "# leakage 自動檢查：把當期報酬當特徵會被偵測出來\n"
+            "try:\n"
+            "    assert_no_lookahead(returns, returns, name='當期報酬當特徵')\n"
+            "    print('未偵測到 leakage')\n"
+            "except ValueError as exc:\n"
+            "    print('偵測到 leakage:', exc)"
+        ),
+        exercises_intro(),
+        md(
+            "### 基礎練習\n\n"
+            "1. 用自己的話解釋 expanding window 與 rolling window 的差別。\n"
+            "2. 為什麼由訊號決定的部位一定要往後位移？\n"
+            "3. 什麼是 survivorship bias？它為何會讓回測過度樂觀？"
+        ),
+        md("### 應用練習"),
+        ex_code(
+            solution,
+            prompt=("# 應用練習 1：把交易成本從 5 bps 提高到 20 bps，比較 net 總報酬。"),
+            starter=(
+                "high_cost = None  # TODO: run_backtest(raw_signal, returns, signal_lag=1, cost_per_unit_turnover=0.002)\n"
+                "if high_cost is not None:\n"
+                "    print('20 bps net 總報酬:', high_cost.summary()['total_net_return'])"
+            ),
+            answer=(
+                "high_cost = run_backtest(raw_signal, returns, signal_lag=1,\n"
+                "                         cost_per_unit_turnover=0.002)\n"
+                "print('5 bps  net 總報酬:', round(summary['total_net_return'], 4))\n"
+                "print('20 bps net 總報酬:', round(high_cost.summary()['total_net_return'], 4))\n"
+                "print('成本越高，net 績效越差 — 高週轉策略對成本特別敏感。')"
+            ),
+        ),
+        ex_code(
+            solution,
+            prompt=("# 應用練習 2：用 cost_summary 比較 gross 與 net 的總報酬與成本拖累。"),
+            starter=(
+                "cs = None  # TODO: cost_summary(result.gross_returns, result.net_returns)\n"
+                "if cs is not None:\n"
+                "    print(cs)"
+            ),
+            answer=(
+                "cs = cost_summary(result.gross_returns, result.net_returns)\n"
+                "for k, v in cs.items():\n"
+                "    print(f'{k}: {v:.6f}')\n"
+                "print('cost_drag 一定 >= 0：成本只會拖累績效。')"
+            ),
+        ),
+        md(
+            "### 反思問題\n\n"
+            "1. 回顧 Week 1–7。一個看起來很賺的回測，可能在哪些環節偷偷"
+            "引入了 leakage、過度配適或多重檢定的問題？請至少列出三點，"
+            f"並對照 [`docs/common_backtesting_mistakes.md`]({docs_prefix(solution)}common_backtesting_mistakes.md)。"
+        ),
+        mistakes(
+            [
+                "用隨機切分而非時間式切分。",
+                "部位沒有往後位移，等於偷看未來（look-ahead bias）。",
+                "只報告 gross 績效，忽略交易成本與週轉。",
+                "沒有和 naive baseline（零報酬、歷史均值、buy-and-hold）比較。",
+                "把刻意 leaked 的荒謬結果誤當成真實策略。",
+                "把 rolling 特徵前期不足的 NaN 用未來資訊回填。",
+            ]
+        ),
+        checklist(
+            [
+                "能實作時間式切分與走動式評估。",
+                "能把預測模型和 naive baseline 做誠實比較。",
+                "能套用交易成本並比較 gross vs net。",
+                "能辨識 leakage，並說明為何其結果無效。",
+                "能完成一個無 leakage、含成本、可重現的小型回測流程。",
+            ]
+        ),
+        md(
+            "## 結語\n\n"
+            "完成八週後，你已經能從「複習數學基礎」走到「一個小而正確、"
+            "防 leakage 的量化研究流程」。請記得本路線圖的核心信念：\n\n"
+            "**先正確評估，再追求精緻模型；先可重現，再談績效。**\n\n"
+            "本專案是教育與研究方法論訓練，**不是投資建議**，也**不宣稱**任何"
+            "可獲利策略。"
+        ),
+        footer_references(solution),
+    ]
+    return cells

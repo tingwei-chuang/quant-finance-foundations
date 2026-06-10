@@ -69,6 +69,19 @@
       --code-bg: #050a14; --code-fg: #d8e0ee;
     }
 
+    /* ---------- accessibility ---------- */
+    .skip-link {
+      position: absolute; left: 1rem; top: -3rem;
+      padding: .5rem .85rem; border-radius: var(--radius-sm);
+      background: var(--accent); color: var(--accent-fg);
+      font-size: .9rem; z-index: 100;
+      transition: top .15s ease;
+    }
+    .skip-link:focus {
+      top: .5rem; outline: 2px solid var(--accent-fg); outline-offset: 1px;
+      text-decoration: none;
+    }
+
     /* ---------- base ---------- */
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
@@ -343,6 +356,10 @@
   </style>
 </head>
 <body>
+
+<!-- Skip link: visually hidden until focused via Tab, then jumps to the main
+     content. Lets keyboard and screen-reader users bypass the nav. -->
+<a class="skip-link" href="#top">跳到主要內容 / Skip to main content</a>
 
 <header class="site">
   <div class="container">

@@ -11,10 +11,20 @@
 > - 注意：本文件與課程內容的 [`roadmap.md`](roadmap.md) 無關；那是給學習者的
 >   八週路線圖，這份是給**維護者**的工程路線圖。
 >
-> **狀態更新（2026-06-10 後續）**：P0–P3 全部已修並合併
-> （測試 96 → 168、覆蓋率 66% → 84%、CI matrix 3 OS × 2 Python、加上
-> `--check` notebook drift gate、`py.typed`、GitHub Pages workflow、pip-audit）。
-> P4 feature backlog 仍未動工，按需取捨。
+> **狀態更新（2026-06-10 後續）**：
+> - **第一輪**：P0–P3 主體已修並合併（測試 96 → 168、覆蓋率 66% → 84%、
+>   CI matrix 3 OS × 2 Python、`--check` notebook drift gate、`py.typed`、
+>   GitHub Pages workflow、pip-audit）。
+> - **第二輪**：列為「partial」的 7 項殘留也已收尾——
+>   (1) 五個 orphan public API 都已在對應週次的 notebook 中示範使用；
+>   (2) 唯一的 notebook 驗證入口統一為 `pytest --nbmake`（`run_all_notebooks.py`
+>   轉為純薄層 wrapper）；(3) 加入 `skip-to-content` 連結；
+>   (4) `scripts/build_notebooks.py` 拆成 `scripts/_notebook_lib/` 套件
+>   （cells、parts、week0..week8 各自獨立檔案，merge 衝突收斂）；
+>   (5) `language_info` 不再釘版本，Jupyter 重存不再造成雜訊 diff；
+>   (6) pip-audit 在 push/schedule 嚴格，僅在 PR 軟性回報；
+>   (7) Python 3.13 已在本機完整驗證（ruff、mypy、168 tests、`--check`）。
+> - P4 feature backlog 仍未動工，按需取捨。
 
 ---
 

@@ -4,7 +4,7 @@
 # `make`, run the underlying `uv run` commands directly (see README.md);
 # the essential Python workflows never depend on `make`.
 
-.PHONY: help install data test lint format typecheck notebooks notebooks-fast check clean audit
+.PHONY: help install data test lint format typecheck notebooks check clean audit
 
 help:  ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
@@ -32,10 +32,7 @@ typecheck:  ## Run mypy type checking.
 
 notebooks:  ## Validate every notebook by execution (matches CI: pytest --nbmake).
 	uv run python -m ipykernel install --user --name python3 >/dev/null 2>&1 || true
-	uv run pytest --nbmake notebooks/ --nbmake-timeout=600
-
-notebooks-fast:  ## Lightweight notebook runner (alternative to nbmake).
-	uv run python scripts/run_all_notebooks.py --include-solutions
+	uv run python scripts/run_all_notebooks.py
 
 audit:  ## Scan installed deps for known vulnerabilities.
 	uv run --with pip-audit pip-audit --strict
