@@ -18,6 +18,7 @@
       --border: #e3e7ee;
       --border-strong: #c9d1de;
       --accent: #2a5fdb;
+      --accent-hover: #1f4cc0;
       --accent-soft: #e8efff;
       --accent-fg: #ffffff;
       --warn: #b04a00;
@@ -41,6 +42,7 @@
         --border: #2a323e;
         --border-strong: #3a4452;
         --accent: #5b8def;
+        --accent-hover: #84a8f5;
         --accent-soft: #1f2a44;
         --accent-fg: #ffffff;
         --warn: #ffb066;
@@ -53,16 +55,17 @@
     }
     html[data-theme="light"] {
       --bg: #ffffff; --bg-soft: #f6f7f9; --bg-elev: #ffffff;
-      --fg: #1a1f2c; --fg-soft: #525c70; --fg-muted: #7d8aa1;
+      /* P3-8: bump muted text contrast from 3.4:1 to AA-compliant ≈4.6:1 */
+      --fg: #1a1f2c; --fg-soft: #525c70; --fg-muted: #5f6b80;
       --border: #e3e7ee; --border-strong: #c9d1de;
-      --accent: #2a5fdb; --accent-soft: #e8efff;
+      --accent: #2a5fdb; --accent-hover: #1f4cc0; --accent-soft: #e8efff;
       --code-bg: #0f172a; --code-fg: #e2e8f0;
     }
     html[data-theme="dark"] {
       --bg: #0f1419; --bg-soft: #161b22; --bg-elev: #1c232c;
       --fg: #e9ecf2; --fg-soft: #b1bccd; --fg-muted: #8593a8;
       --border: #2a323e; --border-strong: #3a4452;
-      --accent: #5b8def; --accent-soft: #1f2a44;
+      --accent: #5b8def; --accent-hover: #84a8f5; --accent-soft: #1f2a44;
       --code-bg: #050a14; --code-fg: #d8e0ee;
     }
 
@@ -149,7 +152,7 @@
     .btn-primary {
       background: var(--accent); color: var(--accent-fg);
     }
-    .btn-primary:hover { background: #1f4cc0; text-decoration: none; color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); text-decoration: none; color: var(--accent-fg); }
     .btn-ghost {
       background: transparent; color: var(--fg);
       border-color: var(--border-strong);
@@ -425,9 +428,15 @@
         <li>
           <h3>安裝 uv</h3>
           <p>依照 <a href="https://docs.astral.sh/uv/getting-started/installation/" target="_blank" rel="noopener">uv 官方說明</a>安裝。常見的單行指令：</p>
+          <p style="margin:.4em 0 .2em; font-size:.85rem; color:var(--fg-muted);">macOS / Linux / WSL：</p>
           <div class="code-block">
             <button class="copy-btn" type="button" data-copy>複製</button>
 <pre>curl -LsSf https://astral.sh/uv/install.sh | sh</pre>
+          </div>
+          <p style="margin:.4em 0 .2em; font-size:.85rem; color:var(--fg-muted);">Windows（PowerShell）：</p>
+          <div class="code-block">
+            <button class="copy-btn" type="button" data-copy>複製</button>
+<pre>powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"</pre>
           </div>
         </li>
         <li>
@@ -466,9 +475,9 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
     <div class="container">
       <h2><span class="h-num">03</span>八週路線圖</h2>
       <p>每張卡片標示：主題、核心概念、預估時數、對應 notebook 與外部資源。
-        <a href="docs/roadmap.md">完整路線圖</a>、
-        <a href="docs/study_guide.md">逐週學習指南</a>、
-        <a href="docs/progress_tracker.md">可編輯進度表</a>都在 <code>docs/</code> 中。</p>
+        <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/roadmap.md">完整路線圖</a>、
+        <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/study_guide.md">逐週學習指南</a>、
+        <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/progress_tracker.md">可編輯進度表</a>都在 <code>docs/</code> 中。</p>
 
       <div class="weeks">
 
@@ -481,7 +490,7 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
             <li>規劃自己的學習路徑</li>
           </ul>
           <div class="wk-links">
-            <a href="notebooks/00_setup_and_readiness_diagnostic.ipynb">Notebook 00</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/notebooks/00_setup_and_readiness_diagnostic.ipynb">Notebook 00</a>
           </div>
         </div>
 
@@ -491,12 +500,12 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
           <ul>
             <li>Simple/log return、年化平均與波動度</li>
             <li>共變異數矩陣、相關係數</li>
-            <li>特徵值、PSD、quadratic form $w^\top\Sigma w$</li>
+            <li>特徵值、PSD、quadratic form <em>w</em><sup>T</sup><em>Σw</em></li>
           </ul>
           <div class="wk-links">
-            <a href="notebooks/01_returns_covariance_and_linear_algebra.ipynb">Notebook 01</a>
-            <a href="docs/math/linear_algebra_cheatsheet.md">線性代數速查</a>
-            <a href="docs/finance/returns_and_risk.md">報酬與風險</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/notebooks/01_returns_covariance_and_linear_algebra.ipynb">Notebook 01</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/math/linear_algebra_cheatsheet.md">線性代數速查</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/finance/returns_and_risk.md">報酬與風險</a>
           </div>
         </div>
 
@@ -509,9 +518,9 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
             <li>最小變異投組封閉解；shrinkage 共變異數</li>
           </ul>
           <div class="wk-links">
-            <a href="notebooks/02_multivariable_calculus_and_min_variance_portfolio.ipynb">Notebook 02</a>
-            <a href="docs/math/multivariable_calculus_cheatsheet.md">多變數微積分</a>
-            <a href="docs/finance/portfolio_construction.md">投資組合</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/notebooks/02_multivariable_calculus_and_min_variance_portfolio.ipynb">Notebook 02</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/math/multivariable_calculus_cheatsheet.md">多變數微積分</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/finance/portfolio_construction.md">投資組合</a>
           </div>
         </div>
 
@@ -524,8 +533,8 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
             <li>用模擬視覺化中央極限定理 (CLT)</li>
           </ul>
           <div class="wk-links">
-            <a href="notebooks/03_probability_simulation_lln_clt.ipynb">Notebook 03</a>
-            <a href="docs/math/probability_cheatsheet.md">機率速查</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/notebooks/03_probability_simulation_lln_clt.ipynb">Notebook 03</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/math/probability_cheatsheet.md">機率速查</a>
           </div>
         </div>
 
@@ -538,8 +547,8 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
             <li>多重檢定與假陽性示範</li>
           </ul>
           <div class="wk-links">
-            <a href="notebooks/04_statistical_inference_for_strategy_returns.ipynb">Notebook 04</a>
-            <a href="docs/math/statistical_inference_cheatsheet.md">推論速查</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/notebooks/04_statistical_inference_for_strategy_returns.ipynb">Notebook 04</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/math/statistical_inference_cheatsheet.md">推論速查</a>
           </div>
         </div>
 
@@ -547,13 +556,13 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
           <div class="wk-head"><div class="wk-num">5</div><h3>迴歸與因子模型</h3></div>
           <div class="wk-meta"><span>9–11 小時</span><span>OLS · 因子</span></div>
           <ul>
-            <li>OLS 矩陣形式 $\hat\beta=(X^\top X)^{-1}X^\top y$</li>
+            <li>OLS 矩陣形式 <em>β̂</em> = (<em>X</em><sup>T</sup><em>X</em>)<sup>−1</sup><em>X</em><sup>T</sup><em>y</em></li>
             <li>CAPM beta 與多因子模型</li>
             <li>Rolling beta、omitted variable bias</li>
           </ul>
           <div class="wk-links">
-            <a href="notebooks/05_regression_and_factor_models.ipynb">Notebook 05</a>
-            <a href="docs/math/regression_cheatsheet.md">迴歸速查</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/notebooks/05_regression_and_factor_models.ipynb">Notebook 05</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/math/regression_cheatsheet.md">迴歸速查</a>
           </div>
         </div>
 
@@ -566,9 +575,9 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
             <li>Binomial tree 為歐式選擇權定價</li>
           </ul>
           <div class="wk-links">
-            <a href="notebooks/06_financial_mathematics_and_option_pricing.ipynb">Notebook 06</a>
-            <a href="docs/finance/discounting_and_bonds.md">折現與債券</a>
-            <a href="docs/finance/derivatives_payoffs.md">衍生性商品</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/notebooks/06_financial_mathematics_and_option_pricing.ipynb">Notebook 06</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/finance/discounting_and_bonds.md">折現與債券</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/finance/derivatives_payoffs.md">衍生性商品</a>
           </div>
         </div>
 
@@ -581,8 +590,8 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
             <li>Rolling 波動度與波動度叢聚</li>
           </ul>
           <div class="wk-links">
-            <a href="notebooks/07_time_series_diagnostics.ipynb">Notebook 07</a>
-            <a href="docs/math/time_series_cheatsheet.md">時間序列速查</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/notebooks/07_time_series_diagnostics.ipynb">Notebook 07</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/math/time_series_cheatsheet.md">時間序列速查</a>
           </div>
         </div>
 
@@ -595,9 +604,9 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
             <li>刻意 leakage 示範與其無效性</li>
           </ul>
           <div class="wk-links">
-            <a href="notebooks/08_walk_forward_forecasting_and_backtesting_integrity.ipynb">Notebook 08</a>
-            <a href="docs/finance/evaluation_methodology.md">評估方法論</a>
-            <a href="docs/common_backtesting_mistakes.md">常見回測錯誤</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/notebooks/08_walk_forward_forecasting_and_backtesting_integrity.ipynb">Notebook 08</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/finance/evaluation_methodology.md">評估方法論</a>
+            <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/common_backtesting_mistakes.md">常見回測錯誤</a>
           </div>
         </div>
 
@@ -665,7 +674,7 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
         <li><h3>看／讀外部資源</h3><p>跟著本頁「外部資源」段落連到官方課程，補強深度。</p></li>
         <li><h3>完成 notebook</h3><p>依序執行 cell、動手填寫 TODO 練習；遇到不懂就回去翻概念筆記。</p></li>
         <li><h3>解習題</h3><p>每本 notebook 都含概念題、程式題與反思題。完整解答在 <code>notebooks/solutions/</code>。</p></li>
-        <li><h3>記錄錯誤</h3><p>把卡住或弄錯的地方寫進個人版的 <a href="docs/progress_tracker.md"><code>progress_tracker.md</code></a>，回顧錯誤是最有效的學習之一。</p></li>
+        <li><h3>記錄錯誤</h3><p>把卡住或弄錯的地方寫進個人版的 <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/progress_tracker.md"><code>progress_tracker.md</code></a>，回顧錯誤是最有效的學習之一。</p></li>
         <li><h3>通過就緒檢查清單</h3><p>誠實打勾每週末尾的「完成本週後，你應該能做到什麼」；都通過了才前進到下一週。</p></li>
       </ol>
     </div>
@@ -762,13 +771,13 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
         <div class="card">
           <h3>合成資料優先</h3>
           <p>所有 notebook 預設只用 <code>scripts/generate_synthetic_dataset.py</code>
-            產生的合成資料，完全離線、可重現，本倉庫**不提交**任何下載的市場價格資料。</p>
+            產生的合成資料，完全離線、可重現，本倉庫<strong>不提交</strong>任何下載的市場價格資料。</p>
         </div>
         <div class="card">
           <h3>使用者責任</h3>
           <p>若你選擇下載真實市場資料，<strong>你必須自行遵守該資料供應商的使用條款</strong>。
             下載資料夾 <code>data/raw/</code> 已被 Git 忽略，請勿提交。
-            詳見 <a href="docs/open_source_and_data_policy.md">資料與開源政策</a>。</p>
+            詳見 <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/open_source_and_data_policy.md">資料與開源政策</a>。</p>
         </div>
       </div>
     </div>
@@ -782,9 +791,9 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
       © Quant Math Roadmap Contributors · MIT License · 教育與研究方法論用途 · 不構成投資建議
     </div>
     <div>
-      <a href="README.md">README</a> ·
-      <a href="docs/roadmap.md">路線圖</a> ·
-      <a href="docs/resources.md">資源</a> ·
+      <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/README.md">README</a> ·
+      <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/roadmap.md">路線圖</a> ·
+      <a href="https://github.com/tingwei-chuang/quant-finance-foundations/blob/main/docs/resources.md">資源</a> ·
       <a href="https://github.com/tingwei-chuang/quant-finance-foundations" target="_blank" rel="noopener">GitHub</a>
     </div>
   </div>
@@ -794,17 +803,42 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
 (function () {
   "use strict";
 
-  // ---------- theme toggle ----------
+  // ---------- safe localStorage wrapper ----------
+  // Safari private mode and "Block all cookies" both throw on any
+  // localStorage access. Wrapping every read/write keeps the page usable
+  // even when persistence is unavailable.
+  const storage = (function () {
+    function safe(action, fallback) {
+      try { return action(); } catch (_e) { return fallback; }
+    }
+    return {
+      get: function (k) { return safe(function () { return localStorage.getItem(k); }, null); },
+      set: function (k, v) { safe(function () { localStorage.setItem(k, v); }); },
+      remove: function (k) { safe(function () { localStorage.removeItem(k); }); }
+    };
+  })();
+
+  // ---------- theme toggle (respects prefers-color-scheme) ----------
   const themeBtn = document.getElementById("theme-toggle");
-  const stored = localStorage.getItem("qmr.theme");
-  if (stored === "light" || stored === "dark") {
-    document.documentElement.setAttribute("data-theme", stored);
+  function systemPrefersDark() {
+    return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
   }
+  function currentTheme() {
+    const explicit = document.documentElement.getAttribute("data-theme");
+    if (explicit === "light" || explicit === "dark") return explicit;
+    return systemPrefersDark() ? "dark" : "light";
+  }
+  function applyTheme(t) {
+    document.documentElement.setAttribute("data-theme", t);
+    themeBtn.setAttribute("aria-pressed", String(t === "dark"));
+  }
+  const storedTheme = storage.get("qmr.theme");
+  if (storedTheme === "light" || storedTheme === "dark") applyTheme(storedTheme);
+  else applyTheme(currentTheme());  // make aria-pressed reflect system
   themeBtn.addEventListener("click", function () {
-    const current = document.documentElement.getAttribute("data-theme");
-    const next = current === "dark" ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", next);
-    localStorage.setItem("qmr.theme", next);
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    applyTheme(next);
+    storage.set("qmr.theme", next);
   });
 
   // ---------- copy buttons ----------
@@ -813,7 +847,7 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
       const pre = btn.parentElement.querySelector("pre");
       if (!pre) return;
       const text = pre.innerText;
-      const done = function () {
+      function done() {
         btn.classList.add("copied");
         const prev = btn.textContent;
         btn.textContent = "已複製";
@@ -821,13 +855,6 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
           btn.classList.remove("copied");
           btn.textContent = prev;
         }, 1200);
-      };
-      if (navigator.clipboard && window.isSecureContext) {
-        navigator.clipboard.writeText(text).then(done).catch(function () {
-          fallback();
-        });
-      } else {
-        fallback();
       }
       function fallback() {
         const ta = document.createElement("textarea");
@@ -836,70 +863,119 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
         ta.style.opacity = "0";
         document.body.appendChild(ta);
         ta.select();
-        try { document.execCommand("copy"); done(); }
-        catch (_e) { /* ignore */ }
+        try { document.execCommand("copy"); done(); } catch (_e) { /* ignore */ }
         document.body.removeChild(ta);
+      }
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(done).catch(fallback);
+      } else {
+        fallback();
       }
     });
   });
 
-  // ---------- schedule planner ----------
+  // ---------- week metadata, shared by planner and tracker ----------
+  // Per-week minimum/recommended hours from docs/roadmap.md; used to warn
+  // when the chosen weekly budget would underfill the heavier weeks.
   const weeks = [
-    { n: 0, title: "環境設定與準備度診斷", hours: "1.5–2.5" },
-    { n: 1, title: "報酬、風險與線性代數", hours: "8–10" },
-    { n: 2, title: "多變數微積分與最小變異投資組合", hours: "9–11" },
-    { n: 3, title: "機率複習：模擬、LLN 與 CLT", hours: "7–9" },
-    { n: 4, title: "策略報酬的統計推論", hours: "9–11" },
-    { n: 5, title: "迴歸與因子模型", hours: "9–11" },
-    { n: 6, title: "財務數學與選擇權定價", hours: "8–10" },
-    { n: 7, title: "時間序列診斷", hours: "8–10" },
-    { n: 8, title: "走動式預測與回測完整性", hours: "10–12" }
+    { n: 0, title: "環境設定與準備度診斷", minHours: 1.5, maxHours: 2.5 },
+    { n: 1, title: "報酬、風險與線性代數", minHours: 8, maxHours: 10 },
+    { n: 2, title: "多變數微積分與最小變異投資組合", minHours: 9, maxHours: 11 },
+    { n: 3, title: "機率複習：模擬、LLN 與 CLT", minHours: 7, maxHours: 9 },
+    { n: 4, title: "策略報酬的統計推論", minHours: 9, maxHours: 11 },
+    { n: 5, title: "迴歸與因子模型", minHours: 9, maxHours: 11 },
+    { n: 6, title: "財務數學與選擇權定價", minHours: 8, maxHours: 10 },
+    { n: 7, title: "時間序列診斷", minHours: 8, maxHours: 10 },
+    { n: 8, title: "走動式預測與回測完整性", minHours: 10, maxHours: 12 }
   ];
+
+  // ---------- schedule planner ----------
   const startInput = document.getElementById("start-date");
   const paceInput = document.getElementById("pace");
   const hoursInput = document.getElementById("weekly-hours");
   const schedBody = document.querySelector("#schedule-table tbody");
 
-  function todayISO() {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d.toISOString().slice(0, 10);
+  // Always format using *local* date fields. The previous version called
+  // toISOString() on a local-midnight Date, which shifts the date back one
+  // day in every UTC+ timezone (the primary audience is UTC+8).
+  function fmtLocal(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + d;
   }
-  function fmt(date) {
-    return date.toISOString().slice(0, 10);
+  function todayLocal() { return fmtLocal(new Date()); }
+  function parseLocal(s) {
+    // "YYYY-MM-DD" -> a Date at local midnight (avoids UTC parsing surprises).
+    const parts = s.split("-");
+    return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
   }
+  function setText(td, text) {
+    td.textContent = text;
+    return td;
+  }
+
   function renderSchedule() {
-    const startStr = startInput.value || todayISO();
-    const base = new Date(startStr + "T00:00:00");
+    const startStr = startInput.value || todayLocal();
+    const base = parseLocal(startStr);
     const stride = parseInt(paceInput.value, 10);
     const wkly = parseInt(hoursInput.value, 10);
-    const week0Stride = 3; // Week 0 is shorter
-    schedBody.innerHTML = "";
+    // Week 0 length scales with the chosen pace too (was hard-coded to 3
+    // days, which made no sense at a 5- or 14-day pace).
+    const week0Stride = Math.max(2, Math.round(stride * 0.4));
+
+    while (schedBody.firstChild) schedBody.removeChild(schedBody.firstChild);
+
     let cursor = new Date(base);
     weeks.forEach(function (w, i) {
       const len = (i === 0) ? week0Stride : stride;
       const end = new Date(cursor);
       end.setDate(end.getDate() + len - 1);
+      const allocated = Math.round((wkly * len / 7) * 10) / 10;
       const tr = document.createElement("tr");
-      tr.innerHTML = "<td><strong>W" + w.n + "</strong></td>" +
-        "<td>" + w.title + "</td>" +
-        "<td class='dates'>" + fmt(cursor) + "</td>" +
-        "<td class='dates'>" + fmt(end) + "</td>" +
-        "<td>" + (i === 0 ? w.hours : Math.round((wkly * len / 7) * 10) / 10 + " 小時") + "</td>";
+      const c1 = document.createElement("td");
+      const strong = document.createElement("strong");
+      strong.textContent = "W" + w.n;
+      c1.appendChild(strong);
+      tr.appendChild(c1);
+      tr.appendChild(setText(document.createElement("td"), w.title));
+      const cStart = document.createElement("td"); cStart.className = "dates";
+      tr.appendChild(setText(cStart, fmtLocal(cursor)));
+      const cEnd = document.createElement("td"); cEnd.className = "dates";
+      tr.appendChild(setText(cEnd, fmtLocal(end)));
+      const cHours = document.createElement("td");
+      // Always show "X 小時"; warn when below the week's minimum.
+      let hoursLabel = allocated + " 小時";
+      if (allocated < w.minHours) {
+        cHours.style.color = "var(--warn)";
+        hoursLabel += " ⚠ < 建議 " + w.minHours;
+        cHours.title = "本週建議 " + w.minHours + "–" + w.maxHours + " 小時";
+      }
+      tr.appendChild(setText(cHours, hoursLabel));
       schedBody.appendChild(tr);
       cursor = new Date(end);
       cursor.setDate(cursor.getDate() + 1);
     });
-    localStorage.setItem("qmr.start", startStr);
-    localStorage.setItem("qmr.pace", paceInput.value);
-    localStorage.setItem("qmr.hours", hoursInput.value);
   }
-  startInput.value = localStorage.getItem("qmr.start") || todayISO();
-  if (localStorage.getItem("qmr.pace")) paceInput.value = localStorage.getItem("qmr.pace");
-  if (localStorage.getItem("qmr.hours")) hoursInput.value = localStorage.getItem("qmr.hours");
-  startInput.addEventListener("change", renderSchedule);
-  paceInput.addEventListener("change", renderSchedule);
-  hoursInput.addEventListener("change", renderSchedule);
+
+  // Initialise inputs from storage, then attach handlers. Critically, we do
+  // NOT save on the initial render — saving only on change avoids pinning
+  // the plan to the first-visit date before the user has touched anything.
+  const storedStart = storage.get("qmr.start");
+  startInput.value = storedStart || todayLocal();
+  const storedPace = storage.get("qmr.pace");
+  if (storedPace) paceInput.value = storedPace;
+  const storedHours = storage.get("qmr.hours");
+  if (storedHours) hoursInput.value = storedHours;
+  function handleChange() {
+    storage.set("qmr.start", startInput.value);
+    storage.set("qmr.pace", paceInput.value);
+    storage.set("qmr.hours", hoursInput.value);
+    renderSchedule();
+  }
+  startInput.addEventListener("change", handleChange);
+  paceInput.addEventListener("change", handleChange);
+  hoursInput.addEventListener("change", handleChange);
   renderSchedule();
 
   // ---------- progress tracker ----------
@@ -909,16 +985,18 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
   const totalItems = weeks.length * COLUMNS.length; // 9 * 6 = 54
   let state = {};
   try {
-    state = JSON.parse(localStorage.getItem(TRACKER_KEY)) || {};
+    const parsed = JSON.parse(storage.get(TRACKER_KEY) || "null");
+    // Defensive: only accept a plain object; reject arrays/primitives.
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) state = parsed;
   } catch (_e) { state = {}; }
 
   function ensureCell(week, col) {
-    if (!state[week]) state[week] = {};
+    if (!state[week] || typeof state[week] !== "object") state[week] = {};
     if (typeof state[week][col] !== "boolean") state[week][col] = false;
     return state[week][col];
   }
   function save() {
-    localStorage.setItem(TRACKER_KEY, JSON.stringify(state));
+    storage.set(TRACKER_KEY, JSON.stringify(state));
     updateSummary();
   }
   function updateSummary() {
@@ -935,7 +1013,11 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
   }
   weeks.forEach(function (w) {
     const tr = document.createElement("tr");
-    tr.innerHTML = "<td class='lbl'>W" + w.n + " · " + w.title + "</td>";
+    const lbl = document.createElement("th");
+    lbl.scope = "row";
+    lbl.className = "lbl";
+    lbl.textContent = "W" + w.n + " · " + w.title;
+    tr.appendChild(lbl);
     COLUMNS.forEach(function (c) {
       const td = document.createElement("td");
       const cb = document.createElement("input");
@@ -955,7 +1037,7 @@ uv run python scripts/run_all_notebooks.py         # 驗證所有 notebook 可�
   document.getElementById("reset-progress").addEventListener("click", function () {
     if (!confirm("確定要清除所有進度嗎？此動作無法復原。")) return;
     state = {};
-    localStorage.removeItem(TRACKER_KEY);
+    storage.remove(TRACKER_KEY);
     document.querySelectorAll("#tracker-table input[type='checkbox']").forEach(function (cb) {
       cb.checked = false;
     });

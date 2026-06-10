@@ -10,6 +10,11 @@
 >   Python 3.12 環境中重現過）+ 文件連結與 API 引用的程式化交叉檢查。
 > - 注意：本文件與課程內容的 [`roadmap.md`](roadmap.md) 無關；那是給學習者的
 >   八週路線圖，這份是給**維護者**的工程路線圖。
+>
+> **狀態更新（2026-06-10 後續）**：P0–P3 全部已修並合併
+> （測試 96 → 168、覆蓋率 66% → 84%、CI matrix 3 OS × 2 Python、加上
+> `--check` notebook drift gate、`py.typed`、GitHub Pages workflow、pip-audit）。
+> P4 feature backlog 仍未動工，按需取捨。
 
 ---
 

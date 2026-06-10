@@ -96,13 +96,24 @@ def test_leaked_strategy_equals_absolute_return(returns: pd.Series) -> None:
     np.testing.assert_allclose(leaked.to_numpy(), returns.abs().to_numpy())
 
 
-def test_honest_backtest_is_not_clairvoyant(returns: pd.Series) -> None:
-    # A signal built from past returns must NOT produce leaked-level results.
-    past_signal = np.sign(returns.shift(1)).fillna(0.0)
-    result = run_backtest(past_signal, returns, cost_per_unit_turnover=0.0)
+def test_honest_backtest_engine_lags_the_signal_internally(
+    returns: pd.Series,
+) -> None:
+    # P1-6: the previous version of this test duplicated the leaked-vs-honest
+    # comparison covered in test_leaked_strategy_is_unrealistically_profitable.
+    # The engine-specific behavior worth checking is that run_backtest applies
+    # the lag for you: feeding the raw sign-of-current-return signal still
+    # produces lagged positions and therefore non-leaked returns.
+    raw_signal = np.sign(returns)  # would be leaked if used contemporaneously
+    result = run_backtest(raw_signal, returns, signal_lag=1, cost_per_unit_turnover=0.0)
+    # Reconstruct the "honest" returns by hand and compare.
+    expected_positions = signal_to_positions(raw_signal, lag=1)
+    expected_returns = strategy_returns(expected_positions, returns)
+    pd.testing.assert_series_equal(result.gross_returns, expected_returns, check_names=False)
+    # And confirm we are nowhere near the absurd leaked performance.
     leaked_total = (1.0 + leaked_strategy_returns(returns)).prod() - 1.0
     honest_total = (1.0 + result.gross_returns).prod() - 1.0
-    assert honest_total < leaked_total
+    assert honest_total < 0.5 * leaked_total
 
 
 def test_run_backtest_positions_are_lagged(returns: pd.Series) -> None:

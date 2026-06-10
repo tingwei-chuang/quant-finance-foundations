@@ -38,7 +38,10 @@ SAMPLE_CONFIG = SyntheticConfig(
 
 def main() -> None:
     """Generate and write the synthetic price dataset."""
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "--output",
         type=Path,

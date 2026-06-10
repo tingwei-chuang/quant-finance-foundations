@@ -132,6 +132,11 @@ def min_variance_weights_long_only(
 
     # Step size from the largest eigenvalue keeps gradient descent stable.
     lipschitz = 2.0 * float(np.linalg.eigvalsh(Sigma).max())
+    if lipschitz <= 0.0:
+        # All eigenvalues are 0 (e.g. zero covariance). Every long-only,
+        # fully-invested portfolio has the same (zero) variance; return the
+        # neutral equal-weight portfolio instead of dividing by zero.
+        return np.full(n, 1.0 / n)
     step = 1.0 / lipschitz
     w = np.full(n, 1.0 / n)
     for _ in range(max_iter):

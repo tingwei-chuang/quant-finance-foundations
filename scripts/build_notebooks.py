@@ -56,15 +56,56 @@ def ex_code(solution: bool, prompt: str, starter: str, answer: str) -> nbf.Noteb
 
 
 def build(cells: list[nbf.NotebookNode]) -> nbf.NotebookNode:
-    """Assemble cells into a notebook node with a pinned kernelspec."""
+    """Assemble cells into a notebook node with a pinned kernelspec.
+
+    Cell IDs are assigned deterministically (``cell-000``, ``cell-001``, …) so
+    that regenerating the notebooks produces byte-identical output. Without
+    this, nbformat would mint a fresh UUID for each cell on every run, making
+    the ``--check`` mode permanently noisy.
+    """
     notebook = nbf.v4.new_notebook()
     notebook.cells = cells
+    for i, cell in enumerate(cells):
+        cell["id"] = f"cell-{i:03d}"
     notebook.metadata = {"kernelspec": KERNELSPEC, "language_info": LANGUAGE_INFO}
     return notebook
 
 
+def docs_prefix(solution: bool) -> str:
+    """Return the relative prefix to ``docs/`` from a notebook directory.
+
+    Main notebooks live in ``notebooks/``; solution notebooks live one level
+    deeper in ``notebooks/solutions/`` and therefore need an extra ``..``.
+    """
+    return "../../docs/" if solution else "../docs/"
+
+
+def _style_setup_cell() -> nbf.NotebookNode:
+    """Emit a one-time setup cell: CJK fonts, sign rendering, deterministic look.
+
+    Without this most matplotlib installs render Chinese titles as tofu boxes
+    and emit a flood of "missing glyph" warnings.
+    """
+    return code(
+        "# 教學樣式設定（CJK 字型、負號正常顯示、固定隨機種子）\n"
+        "import matplotlib as _mpl\n"
+        "_mpl.rcParams['font.sans-serif'] = [\n"
+        "    'PingFang TC', 'Heiti TC', 'Microsoft JhengHei',\n"
+        "    'Noto Sans CJK TC', 'Noto Sans TC',\n"
+        "    'WenQuanYi Zen Hei', 'Source Han Sans TC',\n"
+        "    'Arial Unicode MS', 'DejaVu Sans',\n"
+        "]\n"
+        "_mpl.rcParams['axes.unicode_minus'] = False\n"
+        "_mpl.rcParams['figure.figsize'] = (8.5, 4.5)\n"
+        "_mpl.rcParams['savefig.dpi'] = 100\n"
+        "import numpy as _np\n"
+        "_np.random.seed(0)  # belt-and-braces; library functions take explicit seeds"
+    )
+
+
 def header(
     *,
+    solution: bool,
     week: str,
     title: str,
     objectives: list[str],
@@ -77,6 +118,7 @@ def header(
     pre = "\n".join(f"- {p}" for p in prereqs)
     res = "\n".join(f"- [{name}]({url})" for name, url in resources)
     res_block = res if resources else "- （本週為環境設定，無外部資源）"
+    _ = solution  # acknowledged; reserved for future per-version header changes
     return [
         md(
             f"# {week} — {title}\n\n"
@@ -95,20 +137,24 @@ def header(
             f"{res_block}\n\n"
             "> 外部資源僅供參考連結；本專案不重製任何受版權保護的課程材料。"
         ),
+        _style_setup_cell(),
     ]
 
 
-FOOTER_REFERENCES = md(
-    "## 參考與致謝\n\n"
-    "- 本 notebook 的所有解說、範例與習題皆為本專案**原創**撰寫。\n"
-    "- 推薦的外部學習資源請見 [`docs/resources.md`](../docs/resources.md)。\n"
-    "- 數學與財務概念筆記請見 [`docs/math/`](../docs/math/) 與 "
-    "[`docs/finance/`](../docs/finance/)。\n\n"
-    "### 隱私與免責聲明\n\n"
-    "- 本 notebook 不含任何真實個人資訊。\n"
-    "- 本 notebook 僅使用可重現的合成資料，不需要網路連線。\n"
-    "- 本 notebook 不對任何策略做出實際投資獲利的宣稱。"
-)
+def footer_references(solution: bool) -> nbf.NotebookNode:
+    """Return the standard closing 'references and disclaimer' cell."""
+    p = docs_prefix(solution)
+    return md(
+        "## 參考與致謝\n\n"
+        "- 本 notebook 的所有解說、範例與習題皆為本專案**原創**撰寫。\n"
+        f"- 推薦的外部學習資源請見 [`docs/resources.md`]({p}resources.md)。\n"
+        f"- 數學與財務概念筆記請見 [`docs/math/`]({p}math/) 與 "
+        f"[`docs/finance/`]({p}finance/)。\n\n"
+        "### 隱私與免責聲明\n\n"
+        "- 本 notebook 不含任何真實個人資訊。\n"
+        "- 本 notebook 僅使用可重現的合成資料，不需要網路連線。\n"
+        "- 本 notebook 不對任何策略做出實際投資獲利的宣稱。"
+    )
 
 
 def checklist(items: list[str]) -> nbf.NotebookNode:
@@ -139,6 +185,7 @@ def exercises_intro() -> nbf.NotebookNode:
 # --------------------------------------------------------------------------
 def week0(solution: bool) -> list[nbf.NotebookNode]:
     cells = header(
+        solution=solution,
         week="Week 0",
         title="環境設定與準備度診斷",
         objectives=[
@@ -223,7 +270,7 @@ def week0(solution: bool) -> list[nbf.NotebookNode]:
             "| 財務數學（折現、債券、選擇權 payoff） | Week 6 |  |\n"
             "| 時間序列（定態性、ACF、AR） | Week 7 |  |\n"
             "| 回測完整性（leakage、交易成本） | Week 8 |  |\n\n"
-            "把分數同步填到 [`docs/progress_tracker.md`](../docs/progress_tracker.md)。"
+            f"把分數同步填到 [`docs/progress_tracker.md`]({docs_prefix(solution)}progress_tracker.md)。"
         ),
         md(
             "## 4. 小概念題\n\n"
@@ -312,7 +359,7 @@ def week0(solution: bool) -> list[nbf.NotebookNode]:
             "3. 因為隨機切分會讓模型用到「未來」的資料來預測「過去」，"
             "造成 look-ahead bias，使回測結果過度樂觀（Week 7、8 主題）。"
         ),
-        FOOTER_REFERENCES,
+        footer_references(solution),
     ]
     return cells
 
@@ -322,6 +369,7 @@ def week0(solution: bool) -> list[nbf.NotebookNode]:
 # --------------------------------------------------------------------------
 def week1(solution: bool) -> list[nbf.NotebookNode]:
     cells = header(
+        solution=solution,
         week="Week 1",
         title="報酬、風險與線性代數",
         objectives=[
@@ -369,7 +417,7 @@ def week1(solution: bool) -> list[nbf.NotebookNode]:
             ")\n"
             "from quant_math_roadmap.finance.portfolio import equal_weights, portfolio_variance\n"
             "from quant_math_roadmap.math.linear_algebra import (\n"
-            "    eigendecomposition, is_positive_semidefinite, quadratic_form,\n"
+            "    eigendecomposition, is_positive_semidefinite,\n"
             ")\n"
             "\n"
             "config = SyntheticConfig(n_assets=4, n_periods=756, seed=11,\n"
@@ -510,7 +558,7 @@ def week1(solution: bool) -> list[nbf.NotebookNode]:
                 "能檢查一個矩陣是否為 PSD 並解釋其意義。",
             ]
         ),
-        FOOTER_REFERENCES,
+        footer_references(solution),
     ]
     return cells
 
@@ -520,6 +568,7 @@ def week1(solution: bool) -> list[nbf.NotebookNode]:
 # --------------------------------------------------------------------------
 def week2(solution: bool) -> list[nbf.NotebookNode]:
     cells = header(
+        solution=solution,
         week="Week 2",
         title="多變數微積分與最小變異投資組合",
         objectives=[
@@ -718,7 +767,7 @@ def week2(solution: bool) -> list[nbf.NotebookNode]:
                 "能說明 shrinkage 如何穩定權重。",
             ]
         ),
-        FOOTER_REFERENCES,
+        footer_references(solution),
     ]
     return cells
 
@@ -728,6 +777,7 @@ def week2(solution: bool) -> list[nbf.NotebookNode]:
 # --------------------------------------------------------------------------
 def week3(solution: bool) -> list[nbf.NotebookNode]:
     cells = header(
+        solution=solution,
         week="Week 3",
         title="機率複習：模擬、LLN 與 CLT",
         objectives=[
@@ -901,7 +951,7 @@ def week3(solution: bool) -> list[nbf.NotebookNode]:
                 "能說明為什麼短期策略報酬的平均不可盡信。",
             ]
         ),
-        FOOTER_REFERENCES,
+        footer_references(solution),
     ]
     return cells
 
@@ -911,6 +961,7 @@ def week3(solution: bool) -> list[nbf.NotebookNode]:
 # --------------------------------------------------------------------------
 def week4(solution: bool) -> list[nbf.NotebookNode]:
     cells = header(
+        solution=solution,
         week="Week 4",
         title="策略報酬的統計推論",
         objectives=[
@@ -1095,7 +1146,7 @@ def week4(solution: bool) -> list[nbf.NotebookNode]:
                 "能說出 Sharpe ratio 的至少三項侷限。",
             ]
         ),
-        FOOTER_REFERENCES,
+        footer_references(solution),
     ]
     return cells
 
@@ -1105,6 +1156,7 @@ def week4(solution: bool) -> list[nbf.NotebookNode]:
 # --------------------------------------------------------------------------
 def week5(solution: bool) -> list[nbf.NotebookNode]:
     cells = header(
+        solution=solution,
         week="Week 5",
         title="迴歸與因子模型",
         objectives=[
@@ -1313,7 +1365,7 @@ def week5(solution: bool) -> list[nbf.NotebookNode]:
                 "能說明 omitted variable bias。",
             ]
         ),
-        FOOTER_REFERENCES,
+        footer_references(solution),
     ]
     return cells
 
@@ -1323,6 +1375,7 @@ def week5(solution: bool) -> list[nbf.NotebookNode]:
 # --------------------------------------------------------------------------
 def week6(solution: bool) -> list[nbf.NotebookNode]:
     cells = header(
+        solution=solution,
         week="Week 6",
         title="財務數學與選擇權定價",
         objectives=[
@@ -1500,7 +1553,7 @@ def week6(solution: bool) -> list[nbf.NotebookNode]:
                 "能對主要參數做敏感度分析。",
             ]
         ),
-        FOOTER_REFERENCES,
+        footer_references(solution),
     ]
     return cells
 
@@ -1510,6 +1563,7 @@ def week6(solution: bool) -> list[nbf.NotebookNode]:
 # --------------------------------------------------------------------------
 def week7(solution: bool) -> list[nbf.NotebookNode]:
     cells = header(
+        solution=solution,
         week="Week 7",
         title="時間序列診斷",
         objectives=[
@@ -1553,7 +1607,7 @@ def week7(solution: bool) -> list[nbf.NotebookNode]:
             "from quant_math_roadmap.finance.returns import simple_returns\n"
             "from quant_math_roadmap.time_series.diagnostics import (\n"
             "    adf_stationarity_test, autocorrelation_function,\n"
-            "    rolling_mean, rolling_volatility,\n"
+            "    rolling_volatility,\n"
             ")\n"
             "\n"
             "config = SyntheticConfig(n_assets=1, n_periods=756, seed=21,\n"
@@ -1596,7 +1650,6 @@ def week7(solution: bool) -> list[nbf.NotebookNode]:
         md("### Rolling 波動度與波動度叢聚"),
         code(
             "roll_vol = rolling_volatility(returns, window=40)\n"
-            "roll_mean = rolling_mean(returns, window=40)\n"
             "\n"
             "fig, ax = plt.subplots(figsize=(9, 4.5))\n"
             "ax.plot(roll_vol.index, roll_vol.values, label='40 期 rolling 波動度')\n"
@@ -1691,7 +1744,7 @@ def week7(solution: bool) -> list[nbf.NotebookNode]:
                 "能說明隨機切分為何不適用於時間序列。",
             ]
         ),
-        FOOTER_REFERENCES,
+        footer_references(solution),
     ]
     return cells
 
@@ -1701,6 +1754,7 @@ def week7(solution: bool) -> list[nbf.NotebookNode]:
 # --------------------------------------------------------------------------
 def week8(solution: bool) -> list[nbf.NotebookNode]:
     cells = header(
+        solution=solution,
         week="Week 8",
         title="走動式預測與回測完整性",
         objectives=[
@@ -1866,7 +1920,7 @@ def week8(solution: bool) -> list[nbf.NotebookNode]:
             solution,
             prompt=("# 應用練習 1：把交易成本從 5 bps 提高到 20 bps，比較 net 總報酬。"),
             starter=(
-                "high_cost = None  # TODO: run_backtest(raw_signal, returns, cost_per_unit_turnover=0.002)\n"
+                "high_cost = None  # TODO: run_backtest(raw_signal, returns, signal_lag=1, cost_per_unit_turnover=0.002)\n"
                 "if high_cost is not None:\n"
                 "    print('20 bps net 總報酬:', high_cost.summary()['total_net_return'])"
             ),
@@ -1897,7 +1951,7 @@ def week8(solution: bool) -> list[nbf.NotebookNode]:
             "### 反思問題\n\n"
             "1. 回顧 Week 1–7。一個看起來很賺的回測，可能在哪些環節偷偷"
             "引入了 leakage、過度配適或多重檢定的問題？請至少列出三點，"
-            "並對照 [`docs/common_backtesting_mistakes.md`](../docs/common_backtesting_mistakes.md)。"
+            f"並對照 [`docs/common_backtesting_mistakes.md`]({docs_prefix(solution)}common_backtesting_mistakes.md)。"
         ),
         mistakes(
             [
@@ -1926,7 +1980,7 @@ def week8(solution: bool) -> list[nbf.NotebookNode]:
             "本專案是教育與研究方法論訓練，**不是投資建議**，也**不宣稱**任何"
             "可獲利策略。"
         ),
-        FOOTER_REFERENCES,
+        footer_references(solution),
     ]
     return cells
 
@@ -1947,29 +2001,98 @@ NOTEBOOKS = {
 }
 
 
-def main() -> None:
-    """Generate all main and solution notebooks."""
+def _render_pair(stem: str, builder) -> tuple[nbf.NotebookNode, nbf.NotebookNode]:
+    """Build the (main, solution) notebook node pair for one week."""
+    main_nb = build(builder(solution=False))
+    sol_cells = [
+        md(
+            f"# （參考解答）{stem}\n\n"
+            "> 這是對應主 notebook 的**完整參考解答版**。建議先自己完成主"
+            "notebook 的練習，再對照本檔。所有解說與解答皆為本專案原創。"
+        ),
+        *builder(solution=True),
+    ]
+    sol_nb = build(sol_cells)
+    return main_nb, sol_nb
+
+
+def _normalise(nb: nbf.NotebookNode) -> str:
+    """Serialise a notebook to a stable JSON string for byte-level diffs."""
+    import io
+
+    buf = io.StringIO()
+    nbf.write(nb, buf)
+    return buf.getvalue()
+
+
+def main() -> int:
+    """Generate (or check) all main and solution notebooks."""
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        description="Build (or check) the Week 0-8 notebooks and their solutions.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument(
+        "--only",
+        metavar="WEEK",
+        help="rebuild only the notebook(s) whose stem starts with WEEK "
+        "(e.g. --only 03 rebuilds the Week 3 main + solution notebook).",
+    )
+    parser.add_argument(
+        "--check",
+        action="store_true",
+        help="do not write any files; instead regenerate every notebook in "
+        "memory and report a non-zero exit code if the committed file differs. "
+        "Used by CI to catch drift between the generator and the committed "
+        "notebooks.",
+    )
+    args = parser.parse_args()
+
+    selected: list[tuple[str, callable]] = [
+        (stem, builder)
+        for stem, builder in NOTEBOOKS.items()
+        if args.only is None or stem.startswith(args.only)
+    ]
+    if not selected:
+        print(f"--only={args.only!r} matched no notebook stem.", file=sys.stderr)
+        return 2
+
+    if args.check:
+        drifted: list[str] = []
+        for stem, builder in selected:
+            main_nb, sol_nb = _render_pair(stem, builder)
+            main_path = NB_DIR / f"{stem}.ipynb"
+            sol_path = SOL_DIR / f"{stem}_solution.ipynb"
+            for path, fresh in ((main_path, main_nb), (sol_path, sol_nb)):
+                if not path.exists():
+                    drifted.append(f"{path.relative_to(REPO_ROOT)}: missing")
+                    continue
+                if path.read_text() != _normalise(fresh):
+                    drifted.append(f"{path.relative_to(REPO_ROOT)}: differs from generator")
+        if drifted:
+            print("Notebook drift detected:", file=sys.stderr)
+            for d in drifted:
+                print(f"  - {d}", file=sys.stderr)
+            print(
+                "\nRun  uv run python scripts/build_notebooks.py  to regenerate.",
+                file=sys.stderr,
+            )
+            return 1
+        print(f"OK: {len(selected)} notebook pair(s) match the generator.")
+        return 0
+
     NB_DIR.mkdir(parents=True, exist_ok=True)
     SOL_DIR.mkdir(parents=True, exist_ok=True)
-
-    for stem, builder in NOTEBOOKS.items():
-        main_nb = build(builder(solution=False))
+    for stem, builder in selected:
+        main_nb, sol_nb = _render_pair(stem, builder)
         nbf.write(main_nb, NB_DIR / f"{stem}.ipynb")
-
-        sol_cells = [
-            md(
-                f"# （參考解答）{stem}\n\n"
-                "> 這是對應主 notebook 的**完整參考解答版**。建議先自己完成主"
-                "notebook 的練習，再對照本檔。所有解說與解答皆為本專案原創。"
-            ),
-            *builder(solution=True),
-        ]
-        sol_nb = build(sol_cells)
         nbf.write(sol_nb, SOL_DIR / f"{stem}_solution.ipynb")
         print(f"generated {stem}.ipynb  (+ solution)")
-
-    print(f"\nDone: {len(NOTEBOOKS)} main + {len(NOTEBOOKS)} solution notebooks.")
+    print(f"\nDone: {len(selected)} main + {len(selected)} solution notebooks.")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

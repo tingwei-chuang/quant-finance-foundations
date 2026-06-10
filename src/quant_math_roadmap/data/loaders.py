@@ -14,18 +14,29 @@ import pandas as pd
 from .validation import validate_price_frame
 
 
-def _repo_root() -> Path:
-    """Return the repository root directory.
+def _repo_root() -> Path | None:
+    """Return the repository root directory if running from a source checkout.
 
-    The package lives at ``<root>/src/quant_math_roadmap``; the root is three
-    parents up from this file.
+    Returns ``None`` when the package has been installed as a wheel into
+    ``site-packages`` — in that case there is no repository alongside the code
+    and ``data/sample/`` is not available without a separate download.
     """
-    return Path(__file__).resolve().parents[3]
+    here = Path(__file__).resolve()
+    # Expected layout for an editable / source install:
+    #   <root>/src/quant_math_roadmap/data/loaders.py
+    candidate = here.parents[3]
+    if (candidate / "src" / "quant_math_roadmap" / "data" / "loaders.py").exists():
+        return candidate
+    return None
 
 
-def sample_data_dir() -> Path:
-    """Return the path to the bundled sample-data directory."""
-    return _repo_root() / "data" / "sample"
+def sample_data_dir() -> Path | None:
+    """Return the path to the bundled sample-data directory, or ``None``.
+
+    ``None`` indicates a non-source install (see :func:`_repo_root`).
+    """
+    root = _repo_root()
+    return None if root is None else root / "data" / "sample"
 
 
 def load_prices_csv(path: str | Path, *, validate: bool = True) -> pd.DataFrame:
@@ -61,7 +72,15 @@ def load_sample_prices(*, validate: bool = True) -> pd.DataFrame:
     Returns:
         A price ``DataFrame`` indexed by business day.
     """
-    path = sample_data_dir() / "synthetic_prices.csv"
+    directory = sample_data_dir()
+    if directory is None:
+        raise FileNotFoundError(
+            "Sample data is only available from a source checkout of the "
+            "repository (it is not bundled into the installed package). Clone "
+            "the repo and run scripts/generate_synthetic_dataset.py, or pass "
+            "your own CSV to load_prices_csv()."
+        )
+    path = directory / "synthetic_prices.csv"
     if not path.exists():
         raise FileNotFoundError(
             f"Sample data not found at {path}. Generate it with:\n"

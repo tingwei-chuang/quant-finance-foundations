@@ -1,9 +1,12 @@
 # Pre-commit hooks for quant-math-roadmap.
 # Install with:  uv run pre-commit install
 # Run on all files:  uv run pre-commit run --all-files
+#
+# Hook versions are intentionally kept close to (or at) the versions resolved
+# in uv.lock so that pre-commit and CI never disagree about formatting.
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -15,7 +18,9 @@ repos:
       - id: check-merge-conflict
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.6.9
+    # Keep this rev aligned with the ruff version in uv.lock; running
+    # `uv run pre-commit autoupdate` is the standard refresh path.
+    rev: v0.15.14
     hooks:
       - id: ruff
         args: ["--fix"]
@@ -26,3 +31,14 @@ repos:
     hooks:
       # Keep notebooks free of execution outputs in version control.
       - id: nbstripout
+
+  # mypy runs in CI; mirroring it locally catches type errors before push.
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: uv run mypy
+        language: system
+        types: [python]
+        pass_filenames: false
+        require_serial: true

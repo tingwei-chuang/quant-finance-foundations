@@ -18,6 +18,7 @@ classifiers = [
     "Intended Audience :: Education",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Education",
     "Topic :: Scientific/Engineering :: Mathematics",
 ]
@@ -52,8 +53,12 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/quant-math-roadmap/quant-math-roadmap"
-Repository = "https://github.com/quant-math-roadmap/quant-math-roadmap"
+# The repo name is `quant-finance-foundations` (the original GitHub repo); the
+# package itself is named `quant-math-roadmap`. See README.md §11 for the
+# naming history.
+Homepage = "https://github.com/tingwei-chuang/quant-finance-foundations"
+Repository = "https://github.com/tingwei-chuang/quant-finance-foundations"
+Issues = "https://github.com/tingwei-chuang/quant-finance-foundations/issues"
 
 [build-system]
 requires = ["hatchling"]
@@ -70,9 +75,14 @@ package = true
 minversion = "8.0"
 testpaths = ["tests"]
 addopts = "-ra --strict-markers"
+# Scope deprecation ignores to known noisy third-party code so we still see
+# warnings raised by our own modules and by future pandas/numpy upgrades.
 filterwarnings = [
-    "ignore::DeprecationWarning",
-    "ignore::FutureWarning",
+    "ignore:.*statsmodels.*:DeprecationWarning",
+    "ignore:.*statsmodels.*:FutureWarning",
+    "ignore:.*nbformat.*:DeprecationWarning",
+    "ignore:.*pkg_resources.*:DeprecationWarning",
+    "ignore:.*jupyter_client.*:DeprecationWarning",
 ]
 
 [tool.coverage.run]
@@ -82,6 +92,8 @@ source = ["src/quant_math_roadmap"]
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
+# P1-9: fail CI if coverage silently collapses below this floor.
+fail_under = 80
 
 [tool.ruff]
 line-length = 100

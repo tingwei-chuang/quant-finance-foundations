@@ -4,11 +4,11 @@
 # `make`, run the underlying `uv run` commands directly (see README.md);
 # the essential Python workflows never depend on `make`.
 
-.PHONY: help install data test lint format typecheck notebooks check clean
+.PHONY: help install data test lint format typecheck notebooks notebooks-fast check clean audit
 
 help:  ## Show this help.
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
-		| awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
+		| awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
 
 install:  ## Create the venv (from uv.lock) and install dev dependencies.
 	uv sync --extra dev
@@ -16,11 +16,12 @@ install:  ## Create the venv (from uv.lock) and install dev dependencies.
 data:  ## Generate the synthetic sample dataset.
 	uv run python scripts/generate_synthetic_dataset.py
 
-test:  ## Run the test suite with coverage.
+test:  ## Run the test suite with coverage (enforces fail_under from pyproject).
 	uv run pytest --cov
 
-lint:  ## Run ruff lint checks.
+lint:  ## Run ruff lint AND format checks (matches CI exactly).
 	uv run ruff check .
+	uv run ruff format --check .
 
 format:  ## Auto-format the codebase with ruff.
 	uv run ruff format .
@@ -29,10 +30,17 @@ format:  ## Auto-format the codebase with ruff.
 typecheck:  ## Run mypy type checking.
 	uv run mypy
 
-notebooks:  ## Execute every notebook to validate it runs top-to-bottom.
+notebooks:  ## Validate every notebook by execution (matches CI: pytest --nbmake).
+	uv run python -m ipykernel install --user --name python3 >/dev/null 2>&1 || true
+	uv run pytest --nbmake notebooks/ --nbmake-timeout=600
+
+notebooks-fast:  ## Lightweight notebook runner (alternative to nbmake).
 	uv run python scripts/run_all_notebooks.py --include-solutions
 
-check: lint typecheck test  ## Run lint, type check and tests.
+audit:  ## Scan installed deps for known vulnerabilities.
+	uv run --with pip-audit pip-audit --strict
+
+check: lint typecheck test  ## Run lint (with format check), type check and tests.
 
 clean:  ## Remove caches and build artefacts.
 	rm -rf .pytest_cache .ruff_cache .mypy_cache htmlcov .coverage coverage.xml

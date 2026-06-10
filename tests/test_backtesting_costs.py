@@ -67,7 +67,11 @@ def test_transaction_cost_exact_amount() -> None:
     np.testing.assert_allclose(net.to_numpy(), [0.0, -0.001, 0.0])
 
 
-def test_cost_summary_drag_is_non_negative(asset_returns: pd.Series) -> None:
+def test_cost_summary_drag_is_strictly_positive_when_trading(
+    asset_returns: pd.Series,
+) -> None:
+    # P1-4: tightened from `>= 0` (which would pass for an identity-cost stub)
+    # to `> 0`, since with random sign-flip positions there must be turnover.
     positions = pd.Series(
         np.sign(np.random.default_rng(1).standard_normal(len(asset_returns))),
         index=asset_returns.index,
@@ -75,7 +79,7 @@ def test_cost_summary_drag_is_non_negative(asset_returns: pd.Series) -> None:
     gross = positions * asset_returns
     net = apply_transaction_costs(gross, positions, cost_per_unit_turnover=0.0005)
     summary = cost_summary(gross, net)
-    assert summary["cost_drag"] >= 0.0
+    assert summary["cost_drag"] > 0.0
 
 
 def test_buy_and_hold_does_not_rebalance() -> None:
@@ -97,6 +101,10 @@ def test_buy_and_hold_turns_over_far_less_than_rebalancing() -> None:
     rng = np.random.default_rng(2)
     returns = pd.DataFrame(rng.normal(0.0, 0.015, (120, 4)), index=idx, columns=list("ABCD"))
     comparison = baseline_turnover_comparison(returns)
+    # P0-7: buy-and-hold trades exactly once (the opening trade); the drift
+    # of its weights is reported separately as `buy_and_hold_drift`.
+    assert comparison["buy_and_hold_turnover"] == pytest.approx(1.0)
+    assert comparison["buy_and_hold_drift"] > 0
     assert comparison["buy_and_hold_turnover"] < comparison["equal_weight_rebalanced_turnover"]
 
 
@@ -108,9 +116,13 @@ def test_rebalanced_baseline_runs(asset_returns: pd.Series) -> None:
 
 
 def test_annualized_turnover_scales() -> None:
+    # P1-4: was `> 0` only; now also verifies the linear scaling implied by
+    # the name. Same positions, double the periods-per-year -> double turnover.
     positions = pd.Series([1.0, -1.0] * 50)  # flips every period
-    annual = annualized_turnover(positions, periods_per_year=252)
-    assert annual > 0
+    fast = annualized_turnover(positions, periods_per_year=252)
+    slow = annualized_turnover(positions, periods_per_year=126)
+    assert fast == pytest.approx(2.0 * slow)
+    assert fast > 0
 
 
 def test_run_backtest_reports_gross_and_net(asset_returns: pd.Series) -> None:
